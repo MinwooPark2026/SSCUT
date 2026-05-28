@@ -8,6 +8,8 @@ SSCUT은 콘티와 소스 이미지/영상이 이미 준비된 상태에서 쓰�
 픽커의 커스텀 프롬프트 칸에 내용을 넣으면 그 1장만 별도 프롬프트로 생성한다.
 BGM은 여러 컷을 가로지르므로 컷 콘티가 아니라 최종 렌더 이후의 후처리 단계에서 입힌다.
 
+최종 mp4 렌더링은 이 앱에서도 가능하지만, 권장 흐름은 Final Cut 이나 CapCut 프로젝트 파일로 내보내 거기서 최종 렌더링을 하는 것이다. 긴 영상은 SSCUT 자체 렌더가 오래 걸리고 (20분 영상에 20분 이상), NLE 의 GPU 가속과 partial render 가 훨씬 빠르다. SSCUT 의 역할은 컷·자막·모션 의사결정과 그 결과를 NLE 가 읽을 수 있는 프로젝트 파일로 넘기는 데까지다.
+
 ## 앱의 범위
 
 SSCUT 편집 앱이 하는 일:
@@ -280,16 +282,6 @@ CapCut은 안정적인 공개 프로젝트 타임라인 import 포맷이 없으�
 
 - Final Cut/CapCut motion keyframe 자동 변환
 - CapCut 비공개 draft 파일 직접 생성
-
-## 마이그레이션 도구
-
-기존 실험 폴더를 SSCUT v1으로 한 번 정리할 때만 사용한다. 편집 앱 자체는 SSCUT v1 구조만 읽는다.
-
-```bash
-./run.sh scripts/migrate_to_sscut.py \
-  /path/to/legacy_project \
-  /path/to/new_sscut_project
-```
 
 ## API 키와 배포
 
