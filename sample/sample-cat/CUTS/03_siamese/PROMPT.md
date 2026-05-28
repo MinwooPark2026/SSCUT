@@ -1,0 +1,1 @@
+Frontal close-up of a Siamese cat meowing directly at the camera with mouth open, striking blue eyes and dark facial mask, iPhone vlog style, warm natural daylight, soft beige background

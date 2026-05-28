@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>SSCUT settings</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    body { display: flex; flex-direction: column; background: #1a1a1a; color: #e0e0e0;
+      font-size: 14px; }
+    header { display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 20px; background: #0d0d0d; border-bottom: 1px solid #2a2a2a; }
+    header .hdr-left { display: flex; align-items: center; gap: 16px; min-width: 0; }
+    header .hdr-right { display: flex; align-items: center; gap: 8px; }
+    header .title { font-weight: 600; font-size: 15px; white-space: nowrap; }
+    .tool-nav { display: flex; gap: 0; background: #1a1a1a; border-radius: 5px;
+      padding: 2px; border: 1px solid #2a2a2a; }
+    .tool-link { padding: 5px 14px; border-radius: 3px; font-size: 12px;
+      color: #888; text-decoration: none; font-weight: 500;
+      transition: background 0.12s, color 0.12s; }
+    .tool-link:hover { background: #2a2a2a; color: #fff; }
+    .tool-link.active { background: #1e3a5f; color: #fff;
+      pointer-events: none; cursor: default; }
+    .settings-btn { background: #1e3a5f; color: #fff; border: 1px solid #2a4d7a;
+      width: 30px; height: 30px; border-radius: 50%; cursor: default; text-decoration: none;
+      font-size: 15px; display: flex; align-items: center; justify-content: center; padding: 0; }
+    .help-trigger { position: relative; }
+    .help-btn { background: #2a2a2a; color: #e0e0e0; border: 1px solid #3a3a3a;
+      width: 30px; height: 30px; border-radius: 50%; cursor: help;
+      font-size: 14px; font-weight: 700; display: flex;
+      align-items: center; justify-content: center; padding: 0; }
+    .help-btn:hover { background: #3a3a3a; }
+    .help-popover { display: none; position: absolute; top: calc(100% + 8px); right: 0;
+      background: #0d0d0d; border: 1px solid #3a3a3a; border-radius: 6px;
+      padding: 12px 16px; box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+      z-index: 50; white-space: nowrap; font-size: 12px; font-weight: 400; }
+    .help-trigger:hover .help-popover { display: block; }
+    .help-popover table { border-collapse: collapse; }
+    .help-popover td { padding: 4px 8px; }
+    .help-popover td:first-child { color: #fbbf24; font-family: ui-monospace, monospace; }
+    .help-popover td:last-child { color: #ccc; }
+    .help-popover kbd { background: #2a2a2a; padding: 1px 6px; border-radius: 3px;
+      border: 1px solid #444; font-family: ui-monospace, monospace; font-size: 11px;
+      color: #fff; }
+
+    main { display: flex; flex-direction: column; flex: 1; min-height: 0; padding: 16px 20px; gap: 10px; }
+    .meta { display: flex; justify-content: space-between; align-items: center; gap: 12px;
+      color: #888; font-size: 12px; min-height: 22px; }
+    .meta code { color: #bbb; background: #111; border: 1px solid #2a2a2a;
+      border-radius: 4px; padding: 2px 6px; font-family: ui-monospace, monospace; }
+    .meta .ok { color: #4ade80; }
+    .meta .dirty { color: #fbbf24; }
+    .meta .err { color: #f87171; }
+    textarea { flex: 1; min-height: 0; width: 100%; resize: none;
+      background: #111; color: #eee; border: 1px solid #333; border-radius: 6px;
+      padding: 16px; font-size: 13px; line-height: 1.55;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      tab-size: 2; outline: none; }
+    textarea:focus { border-color: #2a4d7a; box-shadow: 0 0 0 2px rgba(30,58,95,0.45); }
+    .actions { display: flex; align-items: center; gap: 8px; }
+    .actions button { background: #1e3a5f; color: #fff; border: none;
+      padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 600; }
+    .actions button:hover:not(:disabled) { background: #2a4d7a; }
+    .actions button.secondary { background: #2a2a2a; border: 1px solid #3a3a3a; }
+    .actions button.secondary:hover:not(:disabled) { background: #3a3a3a; }
+    .actions button:disabled { background: #333; color: #666; cursor: not-allowed; }
+    .toast { position: fixed; bottom: 20px; right: 20px;
+      background: #1e3a5f; color: #fff; padding: 8px 16px; border-radius: 4px;
+      font-size: 12px; opacity: 0; transition: opacity 0.25s; pointer-events: none;
+      max-width: 600px; white-space: pre-wrap; }
+    .toast.show { opacity: 1; }
+    .toast.ok { background: #166534; }
+    .toast.err { background: #7f1d1d; cursor: pointer; padding-right: 36px;
+      pointer-events: auto; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+    .toast.err::after { content: '✕'; position: absolute; right: 12px; top: 50%;
+      transform: translateY(-50%); opacity: 0.7; font-weight: bold; }
+    .loading-overlay { position: fixed; inset: 0; z-index: 90; display: flex;
+      align-items: center; justify-content: center; background: rgba(13,13,13,0.86); }
+    .loading-overlay.hidden { display: none; }
+    .loading-card { min-width: 280px; max-width: 520px; background: #161616;
+      border: 1px solid #333; border-radius: 8px; padding: 18px 20px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.55); }
+    .loading-row { display: flex; align-items: center; gap: 12px; }
+    .loading-spinner { width: 18px; height: 18px; border-radius: 50%;
+      border: 2px solid #555; border-top-color: #7dd3fc; animation: spin 0.8s linear infinite; }
+    .loading-title { font-weight: 700; color: #fff; }
+    .loading-detail { margin-top: 8px; color: #999; font-size: 12px; line-height: 1.45;
+      white-space: pre-wrap; overflow-wrap: anywhere; }
+    .loading-overlay.err .loading-spinner { display: none; }
+    .loading-overlay.err .loading-title { color: #fca5a5; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="hdr-left">
+      <span class="title">⚙ <span id="title">설정</span></span>
+      <nav class="tool-nav">
+        <a href="/files" class="tool-link">📁 파일</a>
+        <a href="/storyboard" class="tool-link">📝 콘티</a>
+        <a href="/picker" class="tool-link">🖼 픽커</a>
+        <a href="/motion" class="tool-link">🎯 모션</a>
+        <a href="/sync" class="tool-link">🎬 싱크</a>
+        <a href="/bgm" class="tool-link">🎵 BGM</a>
+      </nav>
+    </div>
+    <div class="hdr-right">
+      <span class="settings-btn" title="설정">⚙</span>
+      <span class="help-trigger">
+        <button class="help-btn" aria-label="키보드 단축키">?</button>
+        <div class="help-popover">
+          <table>
+            <tr><td><kbd>Z</kbd> / <kbd>X</kbd></td><td>이전 / 다음 탭</td></tr>
+            <tr><td><kbd>⌘S</kbd> / <kbd>Ctrl+S</kbd></td><td>.env 저장</td></tr>
+          </table>
+        </div>
+      </span>
+      <div class="actions">
+        <button class="secondary" id="reload-btn">다시 읽기</button>
+        <button id="save-btn">저장</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="meta">
+      <div id="path-label">—</div>
+      <div id="status-label">대기</div>
+    </div>
+    <textarea id="env-text" spellcheck="false"></textarea>
+  </main>
+
+  <div class="loading-overlay" id="loading-overlay">
+    <div class="loading-card">
+      <div class="loading-row">
+        <div class="loading-spinner"></div>
+        <div class="loading-title" id="loading-title">설정 읽는 중...</div>
+      </div>
+      <div class="loading-detail" id="loading-detail">.env 파일을 확인하고 있습니다.</div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const state = { path: null, dirty: false, saving: false };
+    const $ = id => document.getElementById(id);
+
+    function escapeHtml(s) {
+      const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML;
+    }
+    function toast(msg, kind = '') {
+      const t = $('toast');
+      t.textContent = msg;
+      t.className = 'toast show ' + kind;
+      clearTimeout(window._tt);
+      if (kind !== 'err') {
+        window._tt = setTimeout(() => t.classList.remove('show'), 1800);
+      }
+    }
+    $('toast').addEventListener('click', () => $('toast').classList.remove('show'));
+    function setStatus(text, kind = '') {
+      $('status-label').textContent = text;
+      $('status-label').className = kind;
+    }
+    function setLoading(show, title = '읽는 중...', detail = '', isError = false) {
+      const o = $('loading-overlay');
+      if (!o) return;
+      $('loading-title').textContent = title;
+      $('loading-detail').textContent = detail;
+      o.classList.toggle('hidden', !show);
+      o.classList.toggle('err', !!isError);
+    }
+    function loadingError(e) {
+      setLoading(true, '로딩 실패', (e && e.message) || String(e), true);
+    }
+
+    async function loadEnv() {
+      setStatus('읽는 중');
+      setLoading(true, '설정 읽는 중...', '.env 파일을 확인하고 있습니다.');
+      const r = await fetch('/env_data');
+      const d = await r.json();
+      if (!r.ok || !d.ok) throw new Error(d.error || `HTTP ${r.status}`);
+      state.path = d.path;
+      state.dirty = false;
+      $('path-label').innerHTML = `<code>${escapeHtml(d.path)}</code>`;
+      $('env-text').value = d.text || '';
+      setStatus('.env 로드됨', 'ok');
+      setLoading(false);
+    }
+
+    async function saveEnv() {
+      if (!state.path || state.saving) return;
+      state.saving = true;
+      $('save-btn').disabled = true;
+      setStatus('저장 중');
+      try {
+        const r = await fetch('/save_env', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: $('env-text').value }),
+        });
+        const d = await r.json();
+        if (!r.ok || !d.ok) throw new Error(d.error || `HTTP ${r.status}`);
+        state.dirty = false;
+        setStatus('저장됨', 'ok');
+        toast('저장됨. 새 API 호출부터 적용됩니다.', 'ok');
+      } catch (e) {
+        setStatus('저장 실패', 'err');
+        toast('저장 실패: ' + e.message, 'err');
+      } finally {
+        state.saving = false;
+        $('save-btn').disabled = false;
+      }
+    }
+
+    $('env-text').addEventListener('input', () => {
+      state.dirty = true;
+      setStatus('수정됨', 'dirty');
+    });
+    $('save-btn').onclick = saveEnv;
+    $('reload-btn').onclick = () => loadEnv().catch(e => toast('로딩 실패: ' + e.message, 'err'));
+
+    const TAB_ORDER = ['/files', '/storyboard', '/picker', '/motion', '/sync', '/bgm'];
+    function moveTab(delta) {
+      const next = delta > 0 ? '/files' : '/bgm';
+      window.location.href = next;
+    }
+    document.addEventListener('keydown', (e) => {
+      const code = e.code;
+      if ((e.metaKey || e.ctrlKey) && code === 'KeyS') {
+        e.preventDefault();
+        saveEnv();
+        return;
+      }
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (code === 'KeyZ') { e.preventDefault(); moveTab(-1); }
+      else if (code === 'KeyX') { e.preventDefault(); moveTab(1); }
+    });
+
+    window.addEventListener('error', (e) => {
+      toast(`JS 에러: ${e.message}\n@ ${(e.filename||'').split('/').pop()}:${e.lineno}:${e.colno}`, 'err');
+    });
+    window.addEventListener('unhandledrejection', (e) => {
+      const r = e.reason;
+      toast(`Promise 에러: ${(r && r.message) || r}`, 'err');
+    });
+
+    loadEnv().catch(e => {
+      setStatus('로딩 실패', 'err');
+      loadingError(e);
+      toast('로딩 실패: ' + e.message, 'err');
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>SSCUT picker</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    body { display: flex; flex-direction: column; background: #1a1a1a; color: #e0e0e0;
+      font-size: 14px; }
+
+    header { display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 20px; background: #0d0d0d; border-bottom: 1px solid #2a2a2a; }
+    header .hdr-left { display: flex; align-items: center; gap: 16px; }
+    header .title { font-weight: 600; font-size: 15px; }
+    header .hdr-right { display: flex; align-items: center; gap: 14px; }
+
+    .tool-nav { display: flex; gap: 0; background: #1a1a1a; border-radius: 5px;
+      padding: 2px; border: 1px solid #2a2a2a; }
+    .tool-link { padding: 5px 14px; border-radius: 3px; font-size: 12px;
+      color: #888; text-decoration: none; font-weight: 500;
+      transition: background 0.12s, color 0.12s; }
+    .tool-link:hover { background: #2a2a2a; color: #fff; }
+    .tool-link.active { background: #1e3a5f; color: #fff;
+      pointer-events: none; cursor: default; }
+    header .status { color: #888; }
+    header .status .done { color: #4ade80; font-weight: 600; }
+    .gen-controls { display: flex; align-items: center; gap: 6px; }
+    .gen-controls select { background: #1a1a1a; color: #e0e0e0; border: 1px solid #3a3a3a;
+      border-radius: 4px; padding: 6px 8px; font-size: 12px; max-width: 150px; }
+    .gen-controls button { background: #1e3a5f; color: #fff; border: none;
+      border-radius: 4px; padding: 7px 10px; font-size: 12px; font-weight: 600;
+      cursor: pointer; white-space: nowrap; }
+    .gen-controls button:hover:not(:disabled) { background: #2a4d7a; }
+    .gen-controls button:disabled { background: #333; color: #777; cursor: wait; }
+
+    .help-trigger { position: relative; }
+    .help-btn { background: #2a2a2a; color: #e0e0e0; border: 1px solid #3a3a3a;
+      width: 28px; height: 28px; border-radius: 50%; cursor: help;
+      font-size: 14px; font-weight: 700; display: flex;
+      align-items: center; justify-content: center; padding: 0; }
+    .help-btn:hover { background: #3a3a3a; }
+    .settings-btn { background: #2a2a2a; color: #e0e0e0; border: 1px solid #3a3a3a;
+      width: 28px; height: 28px; border-radius: 50%; cursor: pointer; text-decoration: none;
+      font-size: 14px; display: flex; align-items: center; justify-content: center; padding: 0; }
+    .settings-btn:hover { background: #3a3a3a; color: #fff; }
+    .help-popover { display: none; position: absolute; top: calc(100% + 8px); right: 0;
+      background: #0d0d0d; border: 1px solid #3a3a3a; border-radius: 6px;
+      padding: 12px 16px; box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+      z-index: 50; white-space: nowrap; font-size: 12px; font-weight: 400; }
+    .help-trigger:hover .help-popover { display: block; }
+    .help-popover table { border-collapse: collapse; }
+    .help-popover td { padding: 4px 8px; }
+    .help-popover td:first-child { color: #fbbf24; font-family: ui-monospace, monospace; }
+    .help-popover td:last-child { color: #ccc; }
+    .help-popover kbd { background: #2a2a2a; padding: 1px 6px; border-radius: 3px;
+      border: 1px solid #444; font-family: ui-monospace, monospace; font-size: 11px;
+      color: #fff; }
+
+    .container { display: flex; flex: 1; overflow: hidden; }
+
+    .sidebar { width: 280px; background: #0d0d0d; border-right: 1px solid #2a2a2a;
+      overflow-y: auto; padding: 16px; flex-shrink: 0; }
+    .sidebar h3 { margin: 0 0 10px 0; font-size: 10px; text-transform: uppercase;
+      color: #666; letter-spacing: 1.2px; font-weight: 600; }
+    .sidebar h3:not(:first-child) { margin-top: 24px; }
+
+    .cut-list { list-style: none; padding: 0; margin: 0; }
+    .cut-list li { padding: 8px 12px; margin: 2px 0; cursor: pointer;
+      border-radius: 4px; font-size: 13px; display: flex; align-items: center; gap: 8px; }
+    .cut-list li:hover { background: #1f1f1f; }
+    .cut-list li.active { background: #1e3a5f; color: #fff; }
+    .cut-list li .badge { margin-left: auto; font-size: 10px; font-family: monospace; }
+    .cut-list li .badge.sel { color: #4ade80; }
+    .cut-list li .badge.no { color: #444; }
+
+    .sb-cut { margin-bottom: 10px; padding: 8px 10px; border-radius: 4px;
+      background: #1a1a1a; font-size: 12px; color: #999; border-left: 2px solid #333;
+      cursor: pointer; transition: background 0.12s; }
+    .sb-cut:hover { background: #252525; }
+    .sb-cut.active { background: #1e3a5f; color: #fff; border-left-color: #4ade80; }
+    .sb-cut .num { color: #4ade80; font-weight: 600; font-family: monospace; font-size: 11px; }
+    .sb-cut .text { margin-top: 4px; line-height: 1.4; }
+
+    main { flex: 1; overflow-y: auto; padding: 20px 24px; }
+
+    .cut-header { display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 14px; }
+    .cut-title { font-size: 17px; font-weight: 600; }
+    .cut-title .pos { color: #666; font-weight: 400; font-size: 13px; margin-right: 8px; }
+    .nav { display: flex; gap: 6px; }
+    .nav button { background: #2a2a2a; color: #e0e0e0; border: 1px solid #3a3a3a;
+      padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 13px; }
+    .nav button:hover:not(:disabled) { background: #3a3a3a; }
+    .nav button:disabled { opacity: 0.3; cursor: not-allowed; }
+
+    .meta { background: #222; border-left: 3px solid #4ade80; padding: 10px 14px;
+      margin-bottom: 18px; border-radius: 4px; line-height: 1.55; }
+    .meta .row { margin-bottom: 8px; }
+    .meta .row:last-child { margin-bottom: 0; }
+    .meta .label { color: #777; font-size: 10px; text-transform: uppercase;
+      letter-spacing: 0.6px; margin-bottom: 3px; font-weight: 600; }
+    .meta .narration { font-size: 15px; color: #fff; }
+    .meta .prompt { color: #999; font-family: ui-monospace, monospace; font-size: 12px;
+      white-space: pre-wrap; }
+    .meta textarea.prompt-override { width: 100%; min-height: 96px; resize: vertical;
+      background: #141414; color: #eee; border: 1px solid #3a3a3a; border-radius: 4px;
+      padding: 8px 10px; font-family: ui-monospace, monospace; font-size: 12px;
+      line-height: 1.45; outline: none; }
+    .meta textarea.prompt-override:focus { border-color: #2a4d7a;
+      box-shadow: 0 0 0 2px rgba(30,58,95,0.35); }
+
+    .images { display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
+
+    .card { position: relative; background: #222; border-radius: 6px;
+      overflow: hidden; cursor: pointer; border: 3px solid transparent;
+      transition: border-color 0.12s, transform 0.12s, box-shadow 0.12s; }
+    .card:hover { border-color: #4a4a4a; transform: translateY(-2px); }
+    .card.sel { border-color: #4ade80; }
+    .card.current { box-shadow: 0 0 0 3px #fbbf24; }
+    .card img, .card video { width: 100%; height: auto; display: block;
+      background: #000; aspect-ratio: 16/9; object-fit: cover; }
+    .card .badge-video { position: absolute; top: 8px; left: 8px;
+      background: rgba(74, 222, 128, 0.9); color: #000; font-weight: 700;
+      padding: 3px 9px; border-radius: 4px; font-size: 11px;
+      letter-spacing: 0.5px; pointer-events: none; }
+    .card .label { position: absolute; top: 8px; left: 8px;
+      background: rgba(0,0,0,0.75); padding: 3px 8px; border-radius: 4px;
+      font-size: 11px; font-family: monospace; }
+    .card .check { position: absolute; top: 8px; right: 8px;
+      background: #4ade80; color: #000; width: 28px; height: 28px;
+      border-radius: 50%; display: none; align-items: center; justify-content: center;
+      font-weight: bold; font-size: 16px; }
+    .card.sel .check { display: flex; }
+    .card .hotkey { position: absolute; bottom: 8px; right: 8px;
+      background: rgba(0,0,0,0.6); color: #aaa; padding: 2px 7px;
+      border-radius: 3px; font-size: 10px; font-family: monospace; }
+
+    .empty { color: #555; text-align: center; padding: 40px; font-style: italic; }
+    .toast { position: fixed; bottom: 20px; right: 20px;
+      background: #1e3a5f; color: #fff; padding: 8px 16px; border-radius: 4px;
+      font-size: 12px; opacity: 0; transition: opacity 0.25s;
+      pointer-events: none; max-width: 600px; white-space: pre-wrap; }
+    .toast.show { opacity: 1; }
+    .toast.err { background: #7f1d1d; cursor: pointer; padding-right: 36px;
+      pointer-events: auto; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+    .toast.err::after { content: '✕'; position: absolute; right: 12px; top: 50%;
+      transform: translateY(-50%); opacity: 0.7; font-weight: bold; }
+    .toast.warn { background: #78350f; color: #fde68a; cursor: pointer;
+      padding-right: 36px; pointer-events: auto;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.5); font-weight: 600; }
+    .toast.warn::after { content: '✕'; position: absolute; right: 12px; top: 50%;
+      transform: translateY(-50%); opacity: 0.7; font-weight: bold; }
+    .toast.err { background: #7f1d1d; }
+    .loading-overlay { position: fixed; inset: 0; z-index: 90; display: flex;
+      align-items: center; justify-content: center; background: rgba(13,13,13,0.86); }
+    .loading-overlay.hidden { display: none; }
+    .loading-card { min-width: 280px; max-width: 520px; background: #161616;
+      border: 1px solid #333; border-radius: 8px; padding: 18px 20px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.55); }
+    .loading-row { display: flex; align-items: center; gap: 12px; }
+    .loading-spinner { width: 18px; height: 18px; border-radius: 50%;
+      border: 2px solid #555; border-top-color: #7dd3fc; animation: spin 0.8s linear infinite; }
+    .loading-title { font-weight: 700; color: #fff; }
+    .loading-detail { margin-top: 8px; color: #999; font-size: 12px; line-height: 1.45;
+      white-space: pre-wrap; overflow-wrap: anywhere; }
+    .loading-overlay.err .loading-spinner { display: none; }
+    .loading-overlay.err .loading-title { color: #fca5a5; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="hdr-left">
+      <span class="title">🎬 <span id="story-title">SSCUT picker</span></span>
+      <nav class="tool-nav">
+        <a href="/files" class="tool-link">📁 파일</a>
+        <a href="/storyboard" class="tool-link">📝 콘티</a>
+        <a href="/picker" class="tool-link active">🖼 픽커</a>
+        <a href="/motion" class="tool-link">🎯 모션</a>
+        <a href="/sync" class="tool-link">🎬 싱크</a>
+        <a href="/bgm" class="tool-link">🎵 BGM</a>
+      </nav>
+    </div>
+    <div class="hdr-right">
+      <span class="gen-controls">
+        <select id="model-select" title="이미지 생성 모델"></select>
+        <button id="generate-btn" title="기준/커스텀 프롬프트로 현재 컷 이미지 1장 생성">+ 1장 생성</button>
+      </span>
+      <span class="status"><span id="sel-count" class="done">0</span> / <span id="total-count">0</span> 컷 선택</span>
+      <a href="/settings" class="settings-btn" aria-label="설정" title="설정">⚙</a>
+      <span class="help-trigger">
+        <button class="help-btn" aria-label="키보드 단축키">?</button>
+        <div class="help-popover">
+          <table>
+            <tr><td><kbd>↑</kbd> <kbd>↓</kbd> / <kbd>W</kbd> <kbd>S</kbd></td><td>이전 / 다음 컷</td></tr>
+            <tr><td><kbd>←</kbd> <kbd>→</kbd> / <kbd>A</kbd> <kbd>D</kbd></td><td>같은 컷 내 이미지 이동</td></tr>
+            <tr><td><kbd>Z</kbd> / <kbd>X</kbd></td><td>이전 / 다음 탭</td></tr>
+            <tr><td><kbd>Space</kbd></td><td>현재 이미지 선택 / 해제</td></tr>
+            <tr><td><kbd>1</kbd>~<kbd>9</kbd></td><td>N번째 이미지 직접 선택</td></tr>
+            <tr><td><kbd>Esc</kbd></td><td>현재 컷 선택 해제</td></tr>
+          </table>
+        </div>
+      </span>
+    </div>
+  </header>
+
+  <div class="container">
+    <aside class="sidebar">
+      <h3>컷 목록</h3>
+      <ul class="cut-list" id="cut-list"></ul>
+
+      <h3 id="sb-heading" style="display:none">콘티</h3>
+      <div id="sb-content"></div>
+    </aside>
+
+    <main>
+      <div class="cut-header">
+        <div class="cut-title"><span class="pos" id="cut-pos">—</span><span id="cut-title">컷 없음</span></div>
+        <div class="nav">
+          <button id="prev-btn">← Prev</button>
+          <button id="next-btn">Next →</button>
+        </div>
+      </div>
+
+      <div class="meta" id="meta"><div class="empty">컷 선택 대기 중</div></div>
+
+      <div class="images" id="images"></div>
+    </main>
+  </div>
+
+  <div class="loading-overlay" id="loading-overlay">
+    <div class="loading-card">
+      <div class="loading-row">
+        <div class="loading-spinner"></div>
+        <div class="loading-title" id="loading-title">프로젝트 읽는 중...</div>
+      </div>
+      <div class="loading-detail" id="loading-detail">컷과 후보 이미지를 확인하고 있습니다.</div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">💾 저장됨</div>
+
+  <script>
+    const state = {
+      cuts: [], sbCuts: [], selections: {}, idx: 0, cursorIdx: 0,
+      saving: false, savePending: false, savePromise: null,
+      models: [], defaultModel: 'gpt-image-1', defaultSize: '1536x1024',
+      defaultQuality: 'medium', generating: false, customPrompts: {},
+    };
+
+    async function loadModels() {
+      const r = await fetch('/image_models');
+      const d = await r.json();
+      state.models = d.models || ['gpt-image-1'];
+      state.defaultModel = d.default_model || state.models[0] || 'gpt-image-1';
+      state.defaultSize = d.default_size || '1536x1024';
+      state.defaultQuality = d.default_quality || 'medium';
+      const sel = document.getElementById('model-select');
+      sel.innerHTML = state.models.map(m => `<option value="${escapeHtml(m)}">${escapeHtml(m)}</option>`).join('');
+      sel.value = state.defaultModel;
+      if (!d.ok) {
+        toast('이미지 생성 설정 확인 필요: ' + (d.error || 'OPENAI_API_KEY 없음'), 'warn');
+      }
+    }
+
+    async function loadData(keepCutId = null, forceCards = false) {
+      setLoading(true, '픽커 읽는 중...', '컷 목록, 선택 상태, 후보 미디어를 불러오는 중입니다.');
+      try {
+        const r = await fetch('/data');
+        const d = await r.json();
+        const prevIdx = state.idx;
+        state.cuts = d.cuts;
+        state.sbCuts = d.storyboard_cuts || [];
+        state.selections = d.selections || {};
+        document.getElementById('story-title').textContent = d.title || 'SSCUT picker';
+        document.getElementById('total-count').textContent = state.cuts.length;
+        // 이미지만 prefetch (영상은 metadata preload 로 첫 프레임 자동 가져옴)
+        state.cuts.forEach(c => (c.media || []).forEach(it => {
+          if (it.type === 'image') {
+            const im = new Image();
+            im.src = `/img/${encodeURIComponent(c.cut_id)}/${encodeURIComponent(it.name)}`;
+          }
+        }));
+        renderSidebar();
+        renderStoryboard();
+        const idx = keepCutId ? state.cuts.findIndex(c => c.cut_id === keepCutId) : -1;
+        if (forceCards) state.idx = -1;
+        goTo(idx >= 0 ? idx : 0);
+        if (forceCards && state.idx < 0) state.idx = prevIdx;
+        setLoading(false);
+      } catch (e) {
+        loadingError(e);
+        throw e;
+      }
+    }
+
+    function escapeHtml(s) {
+      const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML;
+    }
+
+    function selCount() { return Object.values(state.selections).filter(Boolean).length; }
+
+    function renderSidebar() {
+      const ul = document.getElementById('cut-list');
+      ul.innerHTML = state.cuts.map((c, i) => {
+        const sel = state.selections[c.cut_id];
+        const badge = sel ? `<span class="badge sel">✓ ${escapeHtml(sel)}</span>`
+                          : `<span class="badge no">—</span>`;
+        return `<li data-i="${i}" class="${i === state.idx ? 'active' : ''}">
+          <span>${i+1}. ${escapeHtml(c.cut_id)}</span>${badge}</li>`;
+      }).join('');
+      ul.querySelectorAll('li').forEach(li => {
+        li.onclick = () => goTo(parseInt(li.dataset.i));
+      });
+      document.getElementById('sel-count').textContent = selCount();
+    }
+
+    function renderStoryboard() {
+      const h = document.getElementById('sb-heading');
+      const wrap = document.getElementById('sb-content');
+      if (!state.sbCuts.length) { h.style.display = 'none'; wrap.innerHTML = ''; return; }
+      h.style.display = '';
+      wrap.innerHTML = state.sbCuts.map((c, i) => `
+        <div class="sb-cut ${i === state.idx ? 'active' : ''}" data-i="${i}">
+          <span class="num">#${c.index}</span> ${escapeHtml(c.time)}
+          <div class="text">${escapeHtml(c.narration || c.scene || '')}</div>
+        </div>
+      `).join('');
+      wrap.querySelectorAll('.sb-cut').forEach(el => {
+        el.onclick = () => goTo(parseInt(el.dataset.i));
+      });
+    }
+
+    function goTo(i) {
+      if (i < 0 || i >= state.cuts.length) return;
+      const isNewCut = i !== state.idx;
+      state.idx = i;
+      const cut = state.cuts[i];
+      const sb = i < state.sbCuts.length ? state.sbCuts[i] : null;
+
+      // 컷 진입 시: cursor 는 이미 선택된 미디어로 (없으면 0)
+      const media = cut.media || [];
+      if (isNewCut || state.cursorIdx >= media.length) {
+        const sel = state.selections[cut.cut_id];
+        const selIdx = sel ? media.findIndex(it => it.name === sel) : -1;
+        state.cursorIdx = selIdx >= 0 ? selIdx : 0;
+      }
+
+      document.getElementById('cut-pos').textContent = `${i+1}/${state.cuts.length}`;
+      document.getElementById('cut-title').textContent = cut.cut_id;
+
+      const meta = document.getElementById('meta');
+      const rows = [];
+      if (sb) {
+        if (sb.time) rows.push(`<div class="row"><div class="label">시간</div>${escapeHtml(sb.time)}</div>`);
+        if (sb.narration) rows.push(`<div class="row"><div class="label">나레이션</div><div class="narration">${escapeHtml(sb.narration)}</div></div>`);
+        if (sb.scene) rows.push(`<div class="row"><div class="label">메인 장면</div>${escapeHtml(sb.scene)}</div>`);
+      }
+      const promptText = cut.prompt || (sb && (sb.prompt_en || sb.prompt_kr)) || '(prompt 없음)';
+      rows.push(`<div class="row"><div class="label">프롬프트</div><div class="prompt">${escapeHtml(promptText)}</div></div>`);
+      rows.push(`<div class="row"><div class="label">커스텀 프롬프트</div>
+        <textarea id="prompt-override" class="prompt-override" placeholder="비워두면 기준 프롬프트 사용">${escapeHtml(state.customPrompts[cut.cut_id] || '')}</textarea></div>`);
+      meta.innerHTML = rows.join('');
+      const promptOverride = document.getElementById('prompt-override');
+      if (promptOverride) {
+        promptOverride.addEventListener('input', () => {
+          state.customPrompts[cut.cut_id] = promptOverride.value;
+        });
+      }
+
+      // 컷 전환 시에만 풀 렌더 (DOM 재생성). 같은 컷이면 클래스만 갱신 = 깜빡임 없음.
+      if (isNewCut || !document.querySelector('#images .card')) {
+        renderCards();
+      } else {
+        updateClasses();
+      }
+
+      document.getElementById('prev-btn').disabled = i === 0;
+      document.getElementById('next-btn').disabled = i === state.cuts.length - 1;
+
+      renderSidebar();
+      renderStoryboard();
+    }
+
+    function renderCards() {
+      const cut = state.cuts[state.idx];
+      if (!cut) return;
+      const selected = state.selections[cut.cut_id];
+      const imgs = document.getElementById('images');
+      const media = cut.media || [];
+      if (media.length === 0) {
+        imgs.innerHTML = '<div class="empty">이 컷에 미디어 없음</div>';
+        return;
+      }
+      imgs.innerHTML = media.map((it, k) => {
+        const f = it.name;
+        const url = `/img/${encodeURIComponent(cut.cut_id)}/${encodeURIComponent(f)}`;
+        const isVideo = (it.type === 'video');
+        // 영상: <video> + 첫 프레임 미리보기 + 타입 뱃지
+        const inner = isVideo
+          ? `<video src="${url}#t=0.5" preload="metadata" muted playsinline></video>
+             <div class="badge-video">▶ VIDEO</div>`
+          : `<img src="${url}" loading="lazy" alt="${escapeHtml(f)}">`;
+        return `<div class="card ${f === selected ? 'sel' : ''} ${k === state.cursorIdx ? 'current' : ''}" data-f="${escapeHtml(f)}" data-k="${k}" data-type="${it.type}">
+          ${inner}
+          <div class="label">${k+1}. ${escapeHtml(f)}</div>
+          <div class="check">✓</div>
+          ${k < 9 ? `<div class="hotkey">${k+1}</div>` : ''}
+        </div>`;
+      }).join('');
+      imgs.querySelectorAll('.card').forEach(el => {
+        el.onclick = () => {
+          state.cursorIdx = parseInt(el.dataset.k);
+          toggleSelect(cut.cut_id, el.dataset.f);
+        };
+      });
+    }
+
+    function moveCursor(delta) {
+      const cut = state.cuts[state.idx];
+      const media = cut && cut.media || [];
+      if (!media.length) return;
+      state.cursorIdx = Math.max(0, Math.min(media.length - 1, state.cursorIdx + delta));
+      updateClasses();
+    }
+
+    // 같은 컷 내에서 .current / .sel 클래스만 토글 — DOM 재생성 없음 → 깜빡임 없음
+    function updateClasses() {
+      const cut = state.cuts[state.idx];
+      if (!cut) return;
+      const selected = state.selections[cut.cut_id];
+      document.querySelectorAll('#images .card').forEach((el) => {
+        const k = parseInt(el.dataset.k);
+        el.classList.toggle('current', k === state.cursorIdx);
+        el.classList.toggle('sel', el.dataset.f === selected);
+      });
+    }
+
+    async function toggleSelect(cutId, fname) {
+      const cur = state.selections[cutId];
+      const wasDeselect = (cur === fname);
+      if (wasDeselect) {
+        delete state.selections[cutId];
+      } else {
+        state.selections[cutId] = fname;
+      }
+      updateClasses();   // .sel 토글만 (DOM 유지)
+      renderSidebar();   // 사이드바 badge 갱신 (텍스트만, 깜빡임 없음)
+      // 해제는 sticky warn (실수 인지용). 선택은 짧은 ok 토스트.
+      if (wasDeselect) {
+        toast(`⚠ 해제됨 — ${cutId} / ${fname}`, 'warn');
+      } else {
+        toast(`✓ 선택 — ${cutId} / ${fname}`);
+      }
+      await save();
+    }
+
+    function toast(msg, kind = '') {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.className = 'toast show ' + kind;
+      clearTimeout(window._tt);
+      // sticky 종류: err, warn. 클릭해서 닫음. 나머지는 1.5초 후 자동 사라짐.
+      if (kind !== 'err' && kind !== 'warn') {
+        window._tt = setTimeout(() => t.classList.remove('show'), 1500);
+      }
+    }
+    function setLoading(show, title = '읽는 중...', detail = '', isError = false) {
+      const o = document.getElementById('loading-overlay');
+      if (!o) return;
+      document.getElementById('loading-title').textContent = title;
+      document.getElementById('loading-detail').textContent = detail;
+      o.classList.toggle('hidden', !show);
+      o.classList.toggle('err', !!isError);
+    }
+    function loadingError(e) {
+      setLoading(true, '로딩 실패', (e && e.message) || String(e), true);
+    }
+
+    const _toastEl = document.getElementById('toast');
+    _toastEl.addEventListener('click', () => _toastEl.classList.remove('show'));
+    window.addEventListener('error', (e) => {
+      toast(`JS 에러: ${e.message}\n@ ${(e.filename||'').split('/').pop()}:${e.lineno}:${e.colno}`, 'err');
+    });
+    window.addEventListener('unhandledrejection', (e) => {
+      const r = e.reason;
+      toast(`Promise 에러: ${(r && r.message) || r}`, 'err');
+    });
+
+    async function save() {
+      if (state.saving) {
+        state.savePending = true;
+        return state.savePromise;
+      }
+      state.saving = true;
+      state.savePromise = (async () => {
+        try {
+          const r = await fetch('/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ selections: state.selections }),
+          });
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          // 성공 토스트는 안 띄움 — toggleSelect/Esc 의 액션 토스트(✓/⚠) 가 이미 명확. 에러만 알림.
+        } catch (e) {
+          console.error(e); toast('저장 실패: ' + e.message, 'err');
+        } finally {
+          state.saving = false;
+          if (state.savePending) {
+            state.savePending = false;
+            return save();
+          }
+        }
+      })();
+      return state.savePromise;
+    }
+
+    async function generateOne() {
+      const cut = state.cuts[state.idx];
+      if (!cut || state.generating) return;
+      state.generating = true;
+      const btn = document.getElementById('generate-btn');
+      btn.disabled = true;
+      btn.textContent = '생성 중...';
+      try {
+        const model = document.getElementById('model-select').value || state.defaultModel;
+        const promptField = document.getElementById('prompt-override');
+        const promptOverride = ((promptField && promptField.value) || state.customPrompts[cut.cut_id] || '').trim();
+        const r = await fetch('/generate_image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            cut_id: cut.cut_id,
+            model,
+            size: state.defaultSize,
+            quality: state.defaultQuality,
+            prompt_override: promptOverride,
+          }),
+        });
+        const d = await r.json();
+        if (!r.ok || !d.ok) throw new Error(d.error || `HTTP ${r.status}`);
+        const fname = d.images && d.images[0] && d.images[0].name;
+        const sourceLabel = d.prompt_source === 'custom' ? '커스텀 프롬프트' : '기준 프롬프트';
+        toast(`✓ 생성 완료 — ${cut.cut_id} / ${fname || model}\n${sourceLabel} 사용`);
+        await loadData(cut.cut_id, true);
+        const refreshed = state.cuts[state.idx];
+        const media = refreshed && refreshed.media || [];
+        if (fname) {
+          const nextIdx = media.findIndex(it => it.name === fname);
+          if (nextIdx >= 0) state.cursorIdx = nextIdx;
+          renderCards();
+        }
+      } catch (e) {
+        toast('생성 실패: ' + e.message, 'err');
+      } finally {
+        state.generating = false;
+        btn.disabled = false;
+        btn.textContent = '+ 1장 생성';
+      }
+    }
+
+    document.getElementById('prev-btn').onclick = () => goTo(state.idx - 1);
+    document.getElementById('next-btn').onclick = () => goTo(state.idx + 1);
+    document.getElementById('generate-btn').onclick = generateOne;
+
+    const TAB_ORDER = ['/files', '/storyboard', '/picker', '/motion', '/sync', '/bgm'];
+    function moveTab(delta) {
+      const idx = Math.max(0, TAB_ORDER.indexOf(window.location.pathname));
+      const next = (idx + delta + TAB_ORDER.length) % TAB_ORDER.length;
+      window.location.href = TAB_ORDER[next];
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      const code = e.code;
+      const digit = code.startsWith('Digit') ? Number(code.slice(5))
+        : code.startsWith('Numpad') ? Number(code.slice(6))
+        : 0;
+      // 탭 이동: Z / X
+      if (code === 'KeyZ') { e.preventDefault(); moveTab(-1); }
+      else if (code === 'KeyX') { e.preventDefault(); moveTab(1); }
+      // 컷 이동: ↑↓ / W S
+      else if (code === 'ArrowUp' || code === 'KeyW') { e.preventDefault(); goTo(state.idx - 1); }
+      else if (code === 'ArrowDown' || code === 'KeyS') { e.preventDefault(); goTo(state.idx + 1); }
+      // 이미지 좌우 이동: ←→ / A D
+      else if (code === 'ArrowLeft' || code === 'KeyA') { e.preventDefault(); moveCursor(-1); }
+      else if (code === 'ArrowRight' || code === 'KeyD') { e.preventDefault(); moveCursor(1); }
+      // Space: 현재 cursor 미디어 선택/해제
+      else if (code === 'Space') {
+        e.preventDefault();
+        const c = state.cuts[state.idx];
+        const it = c && (c.media || [])[state.cursorIdx];
+        if (it) toggleSelect(c.cut_id, it.name);
+      }
+      // 1~9: N번째 직접 선택 (cursor 도 그 위치로)
+      else if (digit >= 1 && digit <= 9) {
+        const c = state.cuts[state.idx];
+        if (!c) return;
+        const n = digit - 1;
+        const it = (c.media || [])[n];
+        if (it) {
+          e.preventDefault();
+          state.cursorIdx = n;
+          toggleSelect(c.cut_id, it.name);
+        }
+      }
+      // Esc: 현재 컷 선택 해제
+      else if (code === 'Escape') {
+        const c = state.cuts[state.idx];
+        const cur = c && state.selections[c.cut_id];
+        if (cur) {
+          delete state.selections[c.cut_id];
+          updateClasses(); renderSidebar();
+          toast(`⚠ Esc 해제 — ${c.cut_id} / ${cur}`, 'warn');
+          save();
+        }
+      }
+    });
+
+    Promise.all([loadModels(), loadData()]).then(() => setLoading(false)).catch(e => {
+      loadingError(e);
+      document.getElementById('meta').innerHTML =
+        `<div class="empty" style="color:#f87171">로딩 실패: ${escapeHtml(e.message)}</div>`;
+    });
+  </script>
+</body>
+</html>

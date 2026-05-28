@@ -1,0 +1,19 @@
+{
+  "schema": "sscut-project-v1",
+  "name": "test2_cat",
+  "title": "테스트 스크립트 고양이의 콘티",
+  "app_goal": "External storyboard/source generation first; this app is for picking, timing, motion editing, render checks, and occasional extra image generation during edit.",
+  "conti": "CONTI.md",
+  "cuts_dir": "CUTS",
+  "cut_order": [
+    "01_ragdoll",
+    "02_bengal",
+    "03_siamese"
+  ],
+  "picks": "PICKS.json",
+  "timeline": "TIMELINE.json",
+  "renders_dir": "RENDERS",
+  "cache_dir": "CACHE",
+  "bgm": "BGM.json",
+  "audio_dir": "AUDIO"
+}

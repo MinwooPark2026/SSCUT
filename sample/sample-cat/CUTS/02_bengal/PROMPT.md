@@ -1,0 +1,1 @@
+Wide dynamic action shot of a Bengal cat leaping athletically between cat towers, 35mm Panavision lens, vivid golden leopard-spotted fur, mixed slow-motion and real-time motion, natural living room light

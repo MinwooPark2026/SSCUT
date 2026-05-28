@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>SSCUT conti</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    body { display: flex; flex-direction: column; background: #1a1a1a; color: #e0e0e0;
+      font-size: 14px; }
+
+    header { display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 20px; background: #0d0d0d; border-bottom: 1px solid #2a2a2a; }
+    header .hdr-left { display: flex; align-items: center; gap: 16px; min-width: 0; }
+    header .title { font-weight: 600; font-size: 15px; white-space: nowrap; }
+    header .hdr-right { display: flex; align-items: center; gap: 12px; }
+
+    .tool-nav { display: flex; gap: 0; background: #1a1a1a; border-radius: 5px;
+      padding: 2px; border: 1px solid #2a2a2a; }
+    .tool-link { padding: 5px 14px; border-radius: 3px; font-size: 12px;
+      color: #888; text-decoration: none; font-weight: 500;
+      transition: background 0.12s, color 0.12s; }
+    .tool-link:hover { background: #2a2a2a; color: #fff; }
+    .tool-link.active { background: #1e3a5f; color: #fff;
+      pointer-events: none; cursor: default; }
+    .settings-btn { background: #2a2a2a; color: #e0e0e0; border: 1px solid #3a3a3a;
+      width: 30px; height: 30px; border-radius: 50%; cursor: pointer; text-decoration: none;
+      font-size: 15px; display: flex; align-items: center; justify-content: center; padding: 0; }
+    .settings-btn:hover { background: #3a3a3a; color: #fff; }
+    .help-trigger { position: relative; }
+    .help-btn { background: #2a2a2a; color: #e0e0e0; border: 1px solid #3a3a3a;
+      width: 30px; height: 30px; border-radius: 50%; cursor: help;
+      font-size: 14px; font-weight: 700; display: flex;
+      align-items: center; justify-content: center; padding: 0; }
+    .help-btn:hover { background: #3a3a3a; }
+    .help-popover { display: none; position: absolute; top: calc(100% + 8px); right: 0;
+      background: #0d0d0d; border: 1px solid #3a3a3a; border-radius: 6px;
+      padding: 12px 16px; box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+      z-index: 50; white-space: nowrap; font-size: 12px; font-weight: 400; }
+    .help-trigger:hover .help-popover { display: block; }
+    .help-popover table { border-collapse: collapse; }
+    .help-popover td { padding: 4px 8px; }
+    .help-popover td:first-child { color: #fbbf24; font-family: ui-monospace, monospace; }
+    .help-popover td:last-child { color: #ccc; }
+    .help-popover kbd { background: #2a2a2a; padding: 1px 6px; border-radius: 3px;
+      border: 1px solid #444; font-family: ui-monospace, monospace; font-size: 11px;
+      color: #fff; }
+
+    .actions { display: flex; align-items: center; gap: 8px; }
+    .actions button { background: #2a2a2a; color: #e0e0e0; border: 1px solid #3a3a3a;
+      padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+    .actions button:hover:not(:disabled) { background: #3a3a3a; color: #fff; }
+    .actions button.primary { background: #1e3a5f; color: #fff; border-color: #2a4d7a; }
+    .actions button.primary:hover:not(:disabled) { background: #2a4d7a; }
+    .actions button:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    main { display: flex; flex-direction: column; flex: 1; min-height: 0; padding: 16px 20px; gap: 12px; overflow: hidden; }
+    .meta { display: flex; justify-content: space-between; align-items: center; gap: 12px;
+      color: #888; font-size: 12px; min-height: 22px; }
+    .meta code { color: #bbb; background: #111; border: 1px solid #2a2a2a;
+      border-radius: 4px; padding: 2px 6px; font-family: ui-monospace, monospace; }
+    .meta .ok { color: #4ade80; }
+    .meta .dirty { color: #fbbf24; }
+    .meta .err { color: #f87171; }
+
+    .board { flex: 1; min-height: 0; overflow-y: auto; padding-right: 4px; display: flex;
+      flex-direction: column; gap: 12px; }
+    .cut-card { background: #202020; border: 1px solid #333; border-radius: 6px;
+      padding: 14px; display: grid; grid-template-columns: 120px 1fr 1fr; gap: 12px;
+      align-items: start; }
+    .cut-card .card-head { grid-column: 1 / -1; display: flex; gap: 10px;
+      align-items: center; color: #fff; font-weight: 600; }
+    .pill { font-family: ui-monospace, monospace; font-size: 11px; color: #b8d4ff;
+      background: #1e3a5f; padding: 2px 7px; border-radius: 999px; }
+    .field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+    .field.full { grid-column: 1 / -1; }
+    .field.wide { grid-column: span 2; }
+    .field label { color: #888; font-size: 10px; text-transform: uppercase;
+      letter-spacing: 0.5px; font-weight: 600; }
+    input, textarea { width: 100%; background: #111; color: #eee; border: 1px solid #333;
+      border-radius: 4px; padding: 8px 10px; font-size: 13px; font-family: inherit; outline: none; }
+    input:focus, textarea:focus { border-color: #2a4d7a; box-shadow: 0 0 0 2px rgba(30,58,95,0.35); }
+    textarea { min-height: 74px; resize: vertical; line-height: 1.45; }
+    textarea.prompt { min-height: 96px; font-family: ui-monospace, monospace; font-size: 12px; }
+    .empty { color: #666; text-align: center; padding: 48px 12px; border: 1px dashed #333; border-radius: 6px; }
+
+    .toast { position: fixed; bottom: 20px; right: 20px;
+      background: #1e3a5f; color: #fff; padding: 8px 16px; border-radius: 4px;
+      font-size: 12px; opacity: 0; transition: opacity 0.25s; pointer-events: none;
+      max-width: 600px; white-space: pre-wrap; }
+    .toast.show { opacity: 1; }
+    .toast.ok { background: #166534; }
+    .toast.err { background: #7f1d1d; cursor: pointer; padding-right: 36px;
+      pointer-events: auto; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+    .toast.err::after { content: 'x'; position: absolute; right: 12px; top: 50%;
+      transform: translateY(-50%); opacity: 0.7; font-weight: bold; }
+    .loading-overlay { position: fixed; inset: 0; z-index: 90; display: flex;
+      align-items: center; justify-content: center; background: rgba(13,13,13,0.86); }
+    .loading-overlay.hidden { display: none; }
+    .loading-card { min-width: 280px; max-width: 520px; background: #161616;
+      border: 1px solid #333; border-radius: 8px; padding: 18px 20px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.55); }
+    .loading-row { display: flex; align-items: center; gap: 12px; }
+    .loading-spinner { width: 18px; height: 18px; border-radius: 50%;
+      border: 2px solid #555; border-top-color: #7dd3fc; animation: spin 0.8s linear infinite; }
+    .loading-title { font-weight: 700; color: #fff; }
+    .loading-detail { margin-top: 8px; color: #999; font-size: 12px; line-height: 1.45;
+      white-space: pre-wrap; overflow-wrap: anywhere; }
+    .loading-overlay.err .loading-spinner { display: none; }
+    .loading-overlay.err .loading-title { color: #fca5a5; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="hdr-left">
+      <span class="title">📝 <span id="story-title">콘티</span></span>
+      <nav class="tool-nav">
+        <a href="/files" class="tool-link">📁 파일</a>
+        <a href="/storyboard" class="tool-link active">📝 콘티</a>
+        <a href="/picker" class="tool-link">🖼 픽커</a>
+        <a href="/motion" class="tool-link">🎯 모션</a>
+        <a href="/sync" class="tool-link">🎬 싱크</a>
+        <a href="/bgm" class="tool-link">🎵 BGM</a>
+      </nav>
+    </div>
+    <div class="hdr-right">
+      <a href="/settings" class="settings-btn" aria-label="설정" title="설정">⚙</a>
+      <span class="help-trigger">
+        <button class="help-btn" aria-label="키보드 단축키">?</button>
+        <div class="help-popover">
+          <table>
+            <tr><td><kbd>Z</kbd> / <kbd>X</kbd></td><td>이전 / 다음 탭</td></tr>
+            <tr><td><kbd>⌘S</kbd> / <kbd>Ctrl+S</kbd></td><td>콘티 저장</td></tr>
+          </table>
+        </div>
+      </span>
+      <div class="actions">
+        <button id="reload-btn">다시 읽기</button>
+        <button class="primary" id="save-btn">저장</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="meta">
+      <div id="path-label">—</div>
+      <div id="status-label">대기</div>
+    </div>
+    <div class="board" id="board"></div>
+  </main>
+
+  <div class="loading-overlay" id="loading-overlay">
+    <div class="loading-card">
+      <div class="loading-row">
+        <div class="loading-spinner"></div>
+        <div class="loading-title" id="loading-title">콘티 읽는 중...</div>
+      </div>
+      <div class="loading-detail" id="loading-detail">CONTI.md와 컷 목록을 확인하고 있습니다.</div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const FIELD_DEFS = [
+      { key: 'cut_no', label: '컷 번호', type: 'input', cls: '' },
+      { key: 'cut_id', label: '컷 ID', type: 'input', cls: '' },
+      { key: 'time', label: '시간', type: 'input', cls: '' },
+      { key: 'scene', label: '메인 장면', type: 'textarea', cls: 'wide' },
+      { key: 'subcut', label: '컷 구성', type: 'textarea', cls: '' },
+      { key: 'narration', label: '내레이션', type: 'textarea', cls: 'full' },
+    ];
+    const HEADER = ['컷 번호', '컷 ID', '시간', '메인 장면', '컷 구성', '내레이션'];
+    const state = { path: null, dirty: false, saving: false, prefix: '', suffix: '', rows: [], projectCutIds: [] };
+    const $ = id => document.getElementById(id);
+
+    function escapeHtml(s) {
+      const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML;
+    }
+    function toast(msg, kind = '') {
+      const t = $('toast');
+      t.textContent = msg;
+      t.className = 'toast show ' + kind;
+      clearTimeout(window._tt);
+      if (kind !== 'err') window._tt = setTimeout(() => t.classList.remove('show'), 1800);
+    }
+    function setLoading(show, title = '읽는 중...', detail = '', isError = false) {
+      const o = $('loading-overlay');
+      if (!o) return;
+      $('loading-title').textContent = title;
+      $('loading-detail').textContent = detail;
+      o.classList.toggle('hidden', !show);
+      o.classList.toggle('err', !!isError);
+    }
+    function loadingError(e) {
+      setLoading(true, '로딩 실패', (e && e.message) || String(e), true);
+    }
+    $('toast').addEventListener('click', () => $('toast').classList.remove('show'));
+
+    function setStatus(text, kind = '') {
+      $('status-label').textContent = text;
+      $('status-label').className = kind;
+    }
+    function normalizeHeader(s) {
+      return (s || '').toLowerCase().replace(/\s+/g, '').replace(/[·:_\-()#]/g, '');
+    }
+    function findCol(headers, keys) {
+      const hs = headers.map(normalizeHeader);
+      return hs.findIndex(h => keys.some(k => h.includes(normalizeHeader(k))));
+    }
+    function splitRow(line) {
+      return line.trim().replace(/^\|/, '').replace(/\|$/, '').split('|')
+        .map(c => c.trim().replace(/<br\s*\/?>/gi, '\n'));
+    }
+    function isSeparator(line) {
+      return /^\|[\s:|\-]+\|?$/.test(line.trim());
+    }
+    function tableCell(s) {
+      return String(s || '').replace(/\r/g, '').replace(/\n/g, '<br>').replace(/\|/g, '\\|').trim();
+    }
+    function normalizeTerms(text) {
+      return String(text || '')
+        .replace(/#호흡/g, '컷 번호')
+        .replace(/호흡/g, '컷')
+        .replace(/시각 컷 분할/g, '컷 구성');
+    }
+
+    function parseConti(text, projectCutIds = []) {
+      const lines = text.split(/\r?\n/);
+      let tableStart = -1;
+      for (let i = 0; i < lines.length - 1; i++) {
+        if (lines[i].trim().startsWith('|') && isSeparator(lines[i + 1])) {
+          tableStart = i;
+          break;
+        }
+      }
+      if (tableStart < 0) {
+        return { prefix: normalizeTerms(text), suffix: '', rows: [] };
+      }
+      let tableEnd = tableStart + 2;
+      while (tableEnd < lines.length && lines[tableEnd].trim().startsWith('|')) tableEnd++;
+      const headers = splitRow(lines[tableStart]);
+      const idx = {
+        cut_no: findCol(headers, ['컷 번호', '컷 no', '#호흡', '호흡', 'index', '#']),
+        cut_id: findCol(headers, ['컷 id', '컷 아이디', 'cut_id', 'cut id']),
+        time: findCol(headers, ['시간', 'time', 'duration']),
+        scene: findCol(headers, ['메인 장면', '장면', 'scene']),
+        subcut: findCol(headers, ['컷 구성', '컷 분할', '시각 컷', 'subcut', 'sub-cut']),
+        narration: findCol(headers, ['대사', '내레이션', 'narration', 'voice']),
+      };
+      const get = (cells, key) => idx[key] >= 0 && idx[key] < cells.length ? cells[idx[key]] : '';
+      const rows = [];
+      for (let i = tableStart + 2; i < tableEnd; i++) {
+        const cells = splitRow(lines[i]);
+        if (cells.length < 2) continue;
+        const fallbackNo = String(rows.length + 1);
+        rows.push({
+          cut_no: get(cells, 'cut_no') || fallbackNo,
+          cut_id: get(cells, 'cut_id') || projectCutIds[rows.length] || '',
+          time: get(cells, 'time'),
+          scene: get(cells, 'scene'),
+          subcut: get(cells, 'subcut'),
+          narration: get(cells, 'narration'),
+        });
+      }
+      return {
+        prefix: normalizeTerms(lines.slice(0, tableStart).join('\n')).trimEnd(),
+        suffix: normalizeTerms(lines.slice(tableEnd).join('\n')).trimStart(),
+        rows,
+      };
+    }
+
+    function serializeConti() {
+      const table = [
+        `| ${HEADER.join(' | ')} |`,
+        `| ${HEADER.map(() => '---').join(' | ')} |`,
+        ...state.rows.map(r => `| ${[
+          r.cut_no, r.cut_id, r.time, r.scene, r.subcut, r.narration,
+        ].map(tableCell).join(' | ')} |`),
+      ].join('\n');
+      return [normalizeTerms(state.prefix), table, normalizeTerms(state.suffix)]
+        .filter(part => String(part || '').trim())
+        .join('\n\n') + '\n';
+    }
+
+    function renderBoard() {
+      if (!state.rows.length) {
+        $('board').innerHTML = '<div class="empty">CONTI.md에서 markdown 표를 찾지 못했습니다.</div>';
+        return;
+      }
+      $('board').innerHTML = state.rows.map((row, i) => `
+        <section class="cut-card" data-i="${i}">
+          <div class="card-head">
+            <span class="pill">컷 ${escapeHtml(row.cut_no || String(i + 1))}</span>
+            <span>${escapeHtml(row.cut_id || state.projectCutIds[i] || '')}</span>
+          </div>
+          ${FIELD_DEFS.map(f => `
+            <div class="field ${f.cls.includes('full') ? 'full' : f.cls.includes('wide') ? 'wide' : ''}">
+              <label>${escapeHtml(f.label)}</label>
+              ${f.type === 'input'
+                ? `<input data-key="${f.key}" value="${escapeHtml(row[f.key])}">`
+                : `<textarea class="${f.cls.includes('prompt') ? 'prompt' : ''}" data-key="${f.key}">${escapeHtml(row[f.key])}</textarea>`}
+            </div>`).join('')}
+        </section>`).join('');
+      $('board').querySelectorAll('input, textarea').forEach(el => {
+        el.addEventListener('input', () => {
+          const card = el.closest('.cut-card');
+          const row = state.rows[Number(card.dataset.i)];
+          row[el.dataset.key] = el.value;
+          if (el.dataset.key === 'cut_no' || el.dataset.key === 'cut_id') renderCardHead(card, row);
+          markDirty();
+        });
+      });
+    }
+
+    function renderCardHead(card, row) {
+      card.querySelector('.card-head').innerHTML =
+        `<span class="pill">컷 ${escapeHtml(row.cut_no || '')}</span><span>${escapeHtml(row.cut_id || '')}</span>`;
+    }
+    function markDirty() {
+      if (!state.path) return;
+      state.dirty = true;
+      setStatus('수정됨', 'dirty');
+    }
+
+    async function loadStoryboard() {
+      setStatus('읽는 중');
+      setLoading(true, '콘티 읽는 중...', 'CONTI.md와 컷 목록을 확인하고 있습니다.');
+      const r = await fetch('/storyboard_data');
+      const d = await r.json();
+      if (!d.ok) {
+        state.path = null;
+        $('story-title').textContent = '콘티';
+        $('path-label').innerHTML = '<span class="err">CONTI.md 없음</span>';
+        $('board').innerHTML = `<div class="empty">${escapeHtml(d.error || 'SSCUT 프로젝트에는 CONTI.md가 필요합니다.')}</div>`;
+        $('save-btn').disabled = true;
+        setStatus('편집 비활성', 'err');
+        setLoading(false);
+        return;
+      }
+      state.path = d.path;
+      state.projectCutIds = d.project_cut_ids || [];
+      if (!state.projectCutIds.length) {
+        try {
+          const project = await fetch('/data').then(r => r.json());
+          state.projectCutIds = (project.cuts || []).map(c => c.cut_id);
+        } catch (_) {
+          state.projectCutIds = [];
+        }
+      }
+      const parsed = parseConti(d.text || '', state.projectCutIds);
+      state.prefix = parsed.prefix;
+      state.suffix = parsed.suffix;
+      state.rows = parsed.rows;
+      state.dirty = false;
+      $('story-title').textContent = d.title || '콘티';
+      $('path-label').innerHTML = `<code>${escapeHtml(d.path)}</code>`;
+      $('save-btn').disabled = false;
+      renderBoard();
+      setStatus(`${state.rows.length} cuts`, 'ok');
+      setLoading(false);
+    }
+
+    async function saveStoryboard() {
+      if (!state.path || state.saving) return;
+      state.saving = true;
+      $('save-btn').disabled = true;
+      setStatus('저장 중');
+      try {
+        const r = await fetch('/save_storyboard', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: serializeConti() }),
+        });
+        const d = await r.json();
+        if (!r.ok || !d.ok) throw new Error(d.error || `HTTP ${r.status}`);
+        state.dirty = false;
+        $('story-title').textContent = d.title || '콘티';
+        setStatus(`${d.cuts || state.rows.length} cuts 저장됨`, 'ok');
+        toast('저장됨', 'ok');
+      } catch (e) {
+        setStatus('저장 실패', 'err');
+        toast('저장 실패: ' + e.message, 'err');
+      } finally {
+        state.saving = false;
+        $('save-btn').disabled = !state.path;
+      }
+    }
+
+    $('save-btn').onclick = saveStoryboard;
+    $('reload-btn').onclick = loadStoryboard;
+
+    const TAB_ORDER = ['/files', '/storyboard', '/picker', '/motion', '/sync', '/bgm'];
+    function isTypingTarget(el) {
+      if (!el) return false;
+      const tag = el.tagName;
+      return tag === 'INPUT' || tag === 'TEXTAREA' || el.isContentEditable;
+    }
+    function moveTab(delta) {
+      const idx = Math.max(0, TAB_ORDER.indexOf(window.location.pathname));
+      const next = (idx + delta + TAB_ORDER.length) % TAB_ORDER.length;
+      window.location.href = TAB_ORDER[next];
+    }
+    document.addEventListener('keydown', (e) => {
+      const code = e.code;
+      if ((e.metaKey || e.ctrlKey) && code === 'KeyS') {
+        e.preventDefault();
+        saveStoryboard();
+        return;
+      }
+      if (isTypingTarget(e.target) || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (code === 'KeyZ') { e.preventDefault(); moveTab(-1); }
+      else if (code === 'KeyX') { e.preventDefault(); moveTab(1); }
+    });
+
+    window.addEventListener('error', (e) => {
+      toast(`JS 에러: ${e.message}\n@ ${(e.filename||'').split('/').pop()}:${e.lineno}:${e.colno}`, 'err');
+    });
+    window.addEventListener('unhandledrejection', (e) => {
+      const r = e.reason;
+      toast(`Promise 에러: ${(r && r.message) || r}`, 'err');
+    });
+
+    loadStoryboard().catch(e => {
+      setStatus('로딩 실패', 'err');
+      loadingError(e);
+      toast('로딩 실패: ' + e.message, 'err');
+    });
+  </script>
+</body>
+</html>

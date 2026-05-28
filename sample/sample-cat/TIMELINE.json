@@ -1,0 +1,36 @@
+{
+  "schema": "sscut-timeline-v1",
+  "updated_at": "2026-05-22T07:11:59",
+  "timings": {
+    "01_ragdoll": {
+      "start": 0.1439817,
+      "text": "래그돌은 안기면 흐물흐물, 천하태평이에요.",
+      "motion": {
+        "type": "shake",
+        "focal_x": 0.6477777777777778,
+        "focal_y": 0.35358024691358025,
+        "zoom_amount": 0.01
+      }
+    },
+    "02_bengal": {
+      "start": 1.4080882573694637,
+      "text": "벵갈 · 작은 표범, 한시도 못 쉬어 test asdf",
+      "motion": {
+        "type": "zoom_in",
+        "focal_x": 0.35555555555555557,
+        "focal_y": 0.2982716049382716,
+        "zoom_amount": 0.1
+      }
+    },
+    "03_siamese": {
+      "start": 2.3,
+      "text": "샴 · 끊임없이 말 거는 수다쟁이",
+      "motion": {
+        "type": "pan_lr",
+        "focal_x": 0.5,
+        "focal_y": 0.5,
+        "zoom_amount": 0.15
+      }
+    }
+  }
+}

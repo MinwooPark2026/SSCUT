@@ -1,0 +1,1 @@
+Medium close-up of a long-haired Ragdoll cat going completely limp in human arms, soft beige-toned living room, Sony FX3, warm natural daylight, slow motion, striking blue eyes

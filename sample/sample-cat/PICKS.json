@@ -1,0 +1,9 @@
+{
+  "schema": "sscut-picks-v1",
+  "updated_at": "2026-05-29T01:34:00",
+  "selections": {
+    "03_siamese": "images/openai/gpt-image-1/gpt_001.png",
+    "02_bengal": "images/openai/gpt-image-1/gpt_004.png",
+    "01_ragdoll": "images/openai/gpt-image-1/gpt_001.png"
+  }
+}

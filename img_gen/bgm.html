@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>SSCUT BGM</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    body { display: flex; flex-direction: column; background: #1a1a1a; color: #e0e0e0;
+      font-size: 14px; }
+    header { display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 20px; background: #0d0d0d; border-bottom: 1px solid #2a2a2a; }
+    header .hdr-left { display: flex; align-items: center; gap: 16px; min-width: 0; }
+    header .hdr-right { display: flex; align-items: center; gap: 12px; }
+    header .title { font-weight: 600; font-size: 15px; white-space: nowrap; }
+    .tool-nav { display: flex; gap: 0; background: #1a1a1a; border-radius: 5px;
+      padding: 2px; border: 1px solid #2a2a2a; }
+    .tool-link { padding: 5px 14px; border-radius: 3px; font-size: 12px;
+      color: #888; text-decoration: none; font-weight: 500;
+      transition: background 0.12s, color 0.12s; }
+    .tool-link:hover { background: #2a2a2a; color: #fff; }
+    .tool-link.active { background: #1e3a5f; color: #fff;
+      pointer-events: none; cursor: default; }
+    .actions { display: flex; gap: 8px; align-items: center; }
+    button, .button {
+      background: #2a2a2a; color: #e0e0e0; border: 1px solid #3a3a3a;
+      padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;
+      text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
+    button:hover:not(:disabled), .button:hover { background: #3a3a3a; color: #fff; }
+    button:disabled, .button.disabled { opacity: 0.45; cursor: not-allowed; }
+    button.primary { background: #1e3a5f; border-color: #2a4d7a; color: #fff; }
+    button.danger { color: #fecaca; border-color: #5f2727; }
+    .actions select { background: #1a1a1a; color: #e0e0e0; border: 1px solid #3a3a3a;
+      border-radius: 4px; padding: 6px 8px; font-size: 12px; }
+    .settings-btn { background: #2a2a2a; color: #e0e0e0; border: 1px solid #3a3a3a;
+      width: 28px; height: 28px; border-radius: 50%; cursor: pointer; text-decoration: none;
+      font-size: 14px; display: flex; align-items: center; justify-content: center; padding: 0; }
+    .settings-btn:hover { background: #3a3a3a; color: #fff; }
+    .help-trigger { position: relative; }
+    .help-btn { background: #2a2a2a; color: #e0e0e0; border: 1px solid #3a3a3a;
+      width: 28px; height: 28px; border-radius: 50%; cursor: help;
+      font-size: 14px; font-weight: 700; display: flex;
+      align-items: center; justify-content: center; padding: 0; }
+    .help-popover { display: none; position: absolute; top: calc(100% + 8px); right: 0;
+      background: #0d0d0d; border: 1px solid #3a3a3a; border-radius: 6px;
+      padding: 12px 16px; box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+      z-index: 50; white-space: nowrap; font-size: 12px; font-weight: 400; }
+    .help-trigger:hover .help-popover { display: block; }
+    .help-popover table { border-collapse: collapse; }
+    .help-popover td { padding: 4px 8px; }
+    .help-popover td:first-child { color: #fbbf24; font-family: ui-monospace, monospace; }
+    .help-popover td:last-child { color: #ccc; }
+    .help-popover kbd { background: #2a2a2a; padding: 1px 6px; border-radius: 3px;
+      border: 1px solid #444; font-family: ui-monospace, monospace; font-size: 11px;
+      color: #fff; }
+
+    .container { display: flex; flex: 1; min-height: 0; overflow: hidden; }
+    aside { width: 320px; flex-shrink: 0; background: #0d0d0d;
+      border-right: 1px solid #2a2a2a; overflow-y: auto; padding: 16px; }
+    aside h3 { margin: 0 0 10px 0; font-size: 10px; text-transform: uppercase;
+      color: #666; letter-spacing: 1.2px; font-weight: 600; }
+    .track-list, .clip-list { list-style: none; margin: 0; padding: 0; }
+    .track-list li, .clip-list li { padding: 9px 10px; margin: 2px 0; border-radius: 4px;
+      cursor: pointer; color: #aaa; overflow: hidden; }
+    .track-list li:hover, .clip-list li:hover { background: #1f1f1f; color: #fff; }
+    .track-list li.active, .clip-list li.active { background: #1e3a5f; color: #fff; }
+    .name { display: block; white-space: nowrap; overflow: hidden;
+      text-overflow: ellipsis; font-size: 13px; }
+    .meta { display: block; color: #777; font-family: ui-monospace, monospace;
+      font-size: 10px; margin-top: 3px; }
+    li.active .meta { color: #b8d4ff; }
+    .upload { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
+    .upload input { display: none; }
+    .path-note { margin-top: 12px; color: #777; font-size: 11px; line-height: 1.5; }
+    .path-note code { color: #bbb; background: #161616; padding: 1px 5px;
+      border-radius: 3px; font-family: ui-monospace, monospace; }
+
+    main { flex: 1; min-width: 0; overflow-y: auto; padding: 20px 24px; display: flex;
+      flex-direction: column; gap: 14px; }
+    .status { color: #888; font-size: 12px; min-height: 18px; }
+    .status.ok { color: #4ade80; }
+    .status.err { color: #f87171; }
+    .preview-wrap { max-width: 980px; width: 100%; align-self: center; background: #000;
+      border-radius: 6px; overflow: hidden; border: 1px solid #333; }
+    video { width: 100%; display: block; background: #000; }
+    audio { width: 100%; }
+    .empty { color: #666; text-align: center; padding: 46px 12px; border: 1px dashed #333;
+      border-radius: 6px; }
+    .panel { background: #222; border-radius: 6px; padding: 16px; max-width: 980px;
+      align-self: center; width: 100%; display: flex; flex-direction: column; gap: 12px; }
+    .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .panel h2 { margin: 0; font-size: 13px; color: #eee; }
+    .panel-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .timeline { height: 36px; background: #141414; border: 1px solid #333; border-radius: 4px;
+      position: relative; overflow: hidden; }
+    .clip-segment { position: absolute; top: 6px; bottom: 6px; border-radius: 3px;
+      background: #1e3a5f; border: 1px solid #2a4d7a; color: #dbeafe;
+      font-family: ui-monospace, monospace; font-size: 10px; display: flex;
+      align-items: center; padding: 0 6px; min-width: 3px; overflow: hidden;
+      white-space: nowrap; text-overflow: ellipsis; cursor: pointer; }
+    .clip-segment.active { background: #fbbf24; border-color: #f59e0b; color: #111; }
+    .row { display: flex; align-items: center; gap: 12px; }
+    .row .label { color: #888; font-size: 11px; text-transform: uppercase;
+      letter-spacing: 0.5px; font-weight: 600; min-width: 104px; }
+    .row input[type="range"] { flex: 1; }
+    .row input[type="number"], .row select { background: #1a1a1a; color: #fff;
+      border: 1px solid #3a3a3a; padding: 6px 10px; border-radius: 4px;
+      font-family: ui-monospace, monospace; font-size: 13px; }
+    .row input[type="number"] { width: 96px; }
+    .row select { flex: 1; min-width: 0; }
+    .row input[type="checkbox"] { width: 18px; height: 18px; }
+    .row .value { color: #fbbf24; font-family: ui-monospace, monospace; font-size: 13px;
+      min-width: 48px; text-align: right; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 18px; }
+    .two-col .row { min-width: 0; }
+    .toast { position: fixed; bottom: 20px; right: 20px;
+      background: #1e3a5f; color: #fff; padding: 8px 16px; border-radius: 4px;
+      font-size: 12px; opacity: 0; transition: opacity 0.25s; pointer-events: none;
+      max-width: 600px; white-space: pre-wrap; }
+    .toast.show { opacity: 1; }
+    .toast.ok { background: #166534; }
+    .toast.err { background: #7f1d1d; cursor: pointer; padding-right: 36px;
+      pointer-events: auto; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+    .toast.err::after { content: 'x'; position: absolute; right: 12px; top: 50%;
+      transform: translateY(-50%); opacity: 0.7; font-weight: bold; }
+    .loading-overlay { position: fixed; inset: 0; z-index: 90; display: flex;
+      align-items: center; justify-content: center; background: rgba(13,13,13,0.86); }
+    .loading-overlay.hidden { display: none; }
+    .loading-card { min-width: 280px; max-width: 520px; background: #161616;
+      border: 1px solid #333; border-radius: 8px; padding: 18px 20px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.55); }
+    .loading-row { display: flex; align-items: center; gap: 12px; }
+    .loading-spinner { width: 18px; height: 18px; border-radius: 50%;
+      border: 2px solid #555; border-top-color: #7dd3fc; animation: spin 0.8s linear infinite; }
+    .loading-title { font-weight: 700; color: #fff; }
+    .loading-detail { margin-top: 8px; color: #999; font-size: 12px; line-height: 1.45;
+      white-space: pre-wrap; overflow-wrap: anywhere; }
+    .loading-overlay.err .loading-spinner { display: none; }
+    .loading-overlay.err .loading-title { color: #fca5a5; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+      display: none; align-items: center; justify-content: center; z-index: 100; }
+    .modal-backdrop.show { display: flex; }
+    .modal { background: #222; padding: 24px 32px; border-radius: 8px;
+      max-width: 660px; max-height: 80vh; overflow-y: auto; }
+    .modal h2 { margin: 0 0 14px 0; font-size: 16px; }
+    .modal pre { background: #0d0d0d; padding: 12px; border-radius: 4px;
+      font-size: 11px; color: #aaa; overflow: auto; max-height: 320px;
+      font-family: ui-monospace, monospace; }
+    .modal code { color: #ddd; font-family: ui-monospace, monospace; }
+    .modal .actions { display: flex; gap: 8px; justify-content: flex-end;
+      margin-top: 14px; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="hdr-left">
+      <span class="title">🎵 <span id="title">BGM</span></span>
+      <nav class="tool-nav">
+        <a href="/files" class="tool-link">📁 파일</a>
+        <a href="/storyboard" class="tool-link">📝 콘티</a>
+        <a href="/picker" class="tool-link">🖼 픽커</a>
+        <a href="/motion" class="tool-link">🎯 모션</a>
+        <a href="/sync" class="tool-link">🎬 싱크</a>
+        <a href="/bgm" class="tool-link active">🎵 BGM</a>
+      </nav>
+    </div>
+    <div class="hdr-right">
+      <a href="/settings" class="settings-btn" aria-label="설정" title="설정">⚙</a>
+      <span class="help-trigger">
+        <button class="help-btn" aria-label="키보드 단축키">?</button>
+        <div class="help-popover">
+          <table>
+            <tr><td><kbd>Z</kbd> / <kbd>X</kbd></td><td>이전 / 다음 탭</td></tr>
+            <tr><td><kbd>W</kbd> / <kbd>S</kbd></td><td>이전 / 다음 BGM 클립</td></tr>
+            <tr><td><kbd>A</kbd> / <kbd>D</kbd></td><td>클립 시작 -/+</td></tr>
+            <tr><td><kbd>Q</kbd> / <kbd>E</kbd></td><td>원본 시작 -/+</td></tr>
+            <tr><td><kbd>R</kbd> / <kbd>F</kbd></td><td>클립 길이 -/+</td></tr>
+            <tr><td><kbd>C</kbd></td><td>선택 파일로 클립 추가</td></tr>
+            <tr><td><kbd>V</kbd></td><td>클립 복제</td></tr>
+            <tr><td><kbd>T</kbd></td><td>반복 토글</td></tr>
+            <tr><td><kbd>G</kbd></td><td>클립 삭제</td></tr>
+            <tr><td><kbd>Space</kbd></td><td>BGM 재생 / 일시정지</td></tr>
+            <tr><td><kbd>⌘S</kbd> / <kbd>Ctrl+S</kbd></td><td>저장</td></tr>
+          </table>
+        </div>
+      </span>
+      <div class="actions">
+        <button id="reload-btn">다시 읽기</button>
+        <button id="save-btn">저장</button>
+        <button id="render-btn" class="primary">💾 BGM 렌더링</button>
+        <select id="export-format" title="내보내기 형식">
+          <option value="finalcut">Final Cut</option>
+          <option value="capcut">CapCut</option>
+        </select>
+        <button id="export-btn">내보내기</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <aside>
+      <h3>BGM 파일</h3>
+      <ul class="track-list" id="track-list"></ul>
+      <div class="upload">
+        <label class="button" for="upload-input">오디오 추가</label>
+        <input id="upload-input" type="file" accept="audio/*,.mp3,.wav,.m4a,.aac,.flac,.ogg">
+        <button id="add-clip-btn">클립 추가</button>
+      </div>
+      <div class="path-note" id="path-note"></div>
+    </aside>
+
+    <main>
+      <div class="status" id="status">읽는 중</div>
+      <div class="preview-wrap" id="video-wrap"></div>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>BGM 클립</h2>
+          <div class="panel-actions">
+            <button id="dup-clip-btn">복제</button>
+            <button id="delete-clip-btn" class="danger">삭제</button>
+          </div>
+        </div>
+        <div class="timeline" id="timeline"></div>
+        <ul class="clip-list" id="clip-list"></ul>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2 id="clip-title">선택된 클립 없음</h2>
+        </div>
+        <audio id="audio" controls preload="metadata"></audio>
+        <div class="row">
+          <div class="label">Track</div>
+          <select id="track-select"></select>
+        </div>
+        <div class="two-col">
+          <div class="row">
+            <div class="label">Timeline Start</div>
+            <input id="timeline-start" type="number" min="0" step="0.1">
+            <span class="value">sec</span>
+          </div>
+          <div class="row">
+            <div class="label">Source Start</div>
+            <input id="source-start" type="number" min="0" step="0.1">
+            <span class="value">sec</span>
+          </div>
+          <div class="row">
+            <div class="label">Duration</div>
+            <input id="duration" type="number" min="0" step="0.1">
+            <span class="value">sec</span>
+          </div>
+          <div class="row">
+            <div class="label">Loop</div>
+            <input id="loop" type="checkbox">
+          </div>
+          <div class="row">
+            <div class="label">Fade In</div>
+            <input id="fade-in" type="number" min="0" step="0.1">
+            <span class="value">sec</span>
+          </div>
+          <div class="row">
+            <div class="label">Fade Out</div>
+            <input id="fade-out" type="number" min="0" step="0.1">
+            <span class="value">sec</span>
+          </div>
+        </div>
+        <div class="row">
+          <div class="label">Volume</div>
+          <input id="volume" type="range" min="0" max="1" step="0.01">
+          <span class="value" id="volume-label">0.25</span>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal-backdrop" id="render-modal">
+    <div class="modal">
+      <h2 id="render-title">렌더링</h2>
+      <div id="render-status"></div>
+      <pre id="render-log"></pre>
+      <div class="actions">
+        <button id="render-close">닫기</button>
+      </div>
+    </div>
+  </div>
+  <div class="loading-overlay" id="loading-overlay">
+    <div class="loading-card">
+      <div class="loading-row">
+        <div class="loading-spinner"></div>
+        <div class="loading-title" id="loading-title">BGM 탭 읽는 중...</div>
+      </div>
+      <div class="loading-detail" id="loading-detail">BGM 파일, 최종 렌더, 클립 설정을 확인하고 있습니다.</div>
+    </div>
+  </div>
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const DEFAULT_CLIP = {
+      track: '', timeline_start: 0, source_start: 0, duration: 0,
+      volume: 0.25, fade_in: 1, fade_out: 2, loop: true,
+    };
+    const state = {
+      tracks: [], selectedTrackRel: '',
+      config: { schema: 'sscut-bgm-v1', selected_clip_id: '', clips: [] },
+      bgmDir: '', finalPath: '', finalExists: false, finalDuration: 0, outputPath: '',
+      dirty: false, saving: false,
+    };
+    const $ = id => document.getElementById(id);
+
+    function escapeHtml(s) {
+      const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML;
+    }
+    function clamp(n, lo, hi) { return Math.max(lo, Math.min(hi, Number(n) || 0)); }
+    function stepSize(e) { return e && e.shiftKey ? 1.0 : 0.1; }
+    function fmtSize(n) {
+      if (!n) return '0B';
+      if (n > 1024 * 1024) return (n / 1024 / 1024).toFixed(1) + 'MB';
+      if (n > 1024) return (n / 1024).toFixed(1) + 'KB';
+      return n + 'B';
+    }
+    function fmtTime(s) {
+      s = Number(s || 0);
+      const m = Math.floor(s / 60);
+      return `${m}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+    }
+    function toast(msg, kind = '') {
+      const t = $('toast');
+      t.textContent = msg;
+      t.className = 'toast show ' + kind;
+      clearTimeout(window._tt);
+      if (kind !== 'err') window._tt = setTimeout(() => t.classList.remove('show'), 1800);
+    }
+    $('toast').addEventListener('click', () => $('toast').classList.remove('show'));
+    function setStatus(text, kind = '') {
+      $('status').textContent = text;
+      $('status').className = 'status ' + kind;
+    }
+    function audioUrl(rel) {
+      return '/audio/' + encodeURIComponent(rel);
+    }
+    function markDirty() {
+      state.dirty = true;
+      setStatus('수정됨', '');
+    }
+    function trackByRel(rel) {
+      return state.tracks.find(t => t.rel === rel) || null;
+    }
+    function selectedClip() {
+      return state.config.clips.find(c => c.id === state.config.selected_clip_id) || null;
+    }
+    function normalizeClip(raw = {}) {
+      return Object.assign({}, DEFAULT_CLIP, raw, {
+        id: raw.id || `bgm_${Date.now().toString(36)}_${Math.floor(Math.random() * 999)}`,
+        timeline_start: Math.max(0, Number(raw.timeline_start || 0)),
+        source_start: Math.max(0, Number(raw.source_start || 0)),
+        duration: Math.max(0, Number(raw.duration || 0)),
+        volume: clamp(raw.volume ?? 0.25, 0, 1),
+        fade_in: Math.max(0, Number(raw.fade_in ?? 1)),
+        fade_out: Math.max(0, Number(raw.fade_out ?? 2)),
+        loop: !!(raw.loop ?? true),
+      });
+    }
+    function clipDuration(clip) {
+      const remainingFinal = Math.max(0, state.finalDuration - Number(clip.timeline_start || 0));
+      if (clip.duration > 0) return Math.min(clip.duration, remainingFinal);
+      if (clip.loop) return remainingFinal;
+      const t = trackByRel(clip.track);
+      const sourceRemaining = t && t.duration ? Math.max(0, t.duration - Number(clip.source_start || 0)) : remainingFinal;
+      return Math.min(sourceRemaining, remainingFinal);
+    }
+    function clipLabel(clip) {
+      const t = trackByRel(clip.track);
+      return t ? t.name : clip.track || 'no track';
+    }
+
+    function renderTracks() {
+      if (!state.tracks.length) {
+        $('track-list').innerHTML = '<li><span class="name">파일 없음</span><span class="meta">AUDIO/BGM</span></li>';
+        return;
+      }
+      $('track-list').innerHTML = state.tracks.map((t, i) => `
+        <li data-i="${i}" class="${t.rel === state.selectedTrackRel ? 'active' : ''}">
+          <span class="name">🎵 ${escapeHtml(t.name)}</span>
+          <span class="meta">${fmtTime(t.duration)} · ${fmtSize(t.size)}</span>
+        </li>`).join('');
+      $('track-list').querySelectorAll('li').forEach(li => {
+        li.onclick = () => {
+          const t = state.tracks[Number(li.dataset.i)];
+          state.selectedTrackRel = t.rel;
+          renderTracks();
+        };
+      });
+    }
+
+    function renderClipList() {
+      if (!state.config.clips.length) {
+        $('clip-list').innerHTML = '<li><span class="name">클립 없음</span><span class="meta">AUDIO/BGM</span></li>';
+        return;
+      }
+      $('clip-list').innerHTML = state.config.clips.map((c, i) => `
+        <li data-id="${escapeHtml(c.id)}" class="${c.id === state.config.selected_clip_id ? 'active' : ''}">
+          <span class="name">${i + 1}. ${escapeHtml(clipLabel(c))}</span>
+          <span class="meta">T ${Number(c.timeline_start).toFixed(1)}s · S ${Number(c.source_start).toFixed(1)}s · D ${clipDuration(c).toFixed(1)}s${c.loop ? ' · loop' : ''}</span>
+        </li>`).join('');
+      $('clip-list').querySelectorAll('li').forEach(li => {
+        li.onclick = () => selectClip(li.dataset.id);
+      });
+    }
+
+    function renderTimeline() {
+      const total = Math.max(0.01, state.finalDuration || 1);
+      const clips = state.config.clips.map(c => {
+        const left = clamp(c.timeline_start / total * 100, 0, 100);
+        const width = clamp(clipDuration(c) / total * 100, 0.4, 100 - left);
+        return `<div class="clip-segment ${c.id === state.config.selected_clip_id ? 'active' : ''}"
+          data-id="${escapeHtml(c.id)}" style="left:${left}%;width:${width}%">${escapeHtml(clipLabel(c))}</div>`;
+      }).join('');
+      $('timeline').innerHTML = clips || '<div class="empty" style="border:0;padding:9px 12px">—</div>';
+      $('timeline').querySelectorAll('.clip-segment').forEach(el => {
+        el.onclick = () => selectClip(el.dataset.id);
+      });
+    }
+
+    function renderVideo() {
+      if (!state.finalExists) {
+        $('video-wrap').innerHTML = '<div class="empty">RENDERS/final.mp4 없음</div>';
+        return;
+      }
+      const src = '/file_preview?path=' + encodeURIComponent(state.finalPath);
+      $('video-wrap').innerHTML = `<video src="${src}" controls playsinline></video>`;
+    }
+
+    function fillTrackSelect() {
+      $('track-select').innerHTML = state.tracks.map(t =>
+        `<option value="${escapeHtml(t.rel)}">${escapeHtml(t.name)}</option>`).join('');
+    }
+
+    function fillControls() {
+      const clip = selectedClip();
+      const hasClip = !!clip;
+      ['track-select', 'timeline-start', 'source-start', 'duration', 'volume', 'fade-in', 'fade-out', 'loop',
+       'dup-clip-btn', 'delete-clip-btn'].forEach(id => $(id).disabled = !hasClip);
+      if (!clip) {
+        $('clip-title').textContent = '선택된 클립 없음';
+        $('audio').removeAttribute('src');
+        $('audio').style.display = 'none';
+        return;
+      }
+      state.selectedTrackRel = clip.track || state.selectedTrackRel;
+      $('clip-title').textContent = clipLabel(clip);
+      $('track-select').value = clip.track;
+      $('timeline-start').value = clip.timeline_start;
+      $('source-start').value = clip.source_start;
+      $('duration').value = clip.duration;
+      $('volume').value = clip.volume;
+      $('volume-label').textContent = Number(clip.volume).toFixed(2);
+      $('fade-in').value = clip.fade_in;
+      $('fade-out').value = clip.fade_out;
+      $('loop').checked = !!clip.loop;
+      if (clip.track) {
+        $('audio').src = audioUrl(clip.track);
+        $('audio').style.display = 'block';
+      } else {
+        $('audio').removeAttribute('src');
+        $('audio').style.display = 'none';
+      }
+    }
+    function setLoading(show, title = '읽는 중...', detail = '', isError = false) {
+      const o = $('loading-overlay');
+      if (!o) return;
+      $('loading-title').textContent = title;
+      $('loading-detail').textContent = detail;
+      o.classList.toggle('hidden', !show);
+      o.classList.toggle('err', !!isError);
+    }
+    function loadingError(e) {
+      setLoading(true, '로딩 실패', (e && e.message) || String(e), true);
+    }
+
+    function rerender() {
+      renderTracks();
+      renderClipList();
+      renderTimeline();
+      fillTrackSelect();
+      fillControls();
+    }
+
+    function refreshEditedControls() {
+      const clip = selectedClip();
+      if (!clip) return;
+      state.selectedTrackRel = clip.track;
+      $('clip-title').textContent = clipLabel(clip);
+      $('volume-label').textContent = Number(clip.volume).toFixed(2);
+      if (clip.track) {
+        $('audio').src = audioUrl(clip.track);
+        $('audio').style.display = 'block';
+      } else {
+        $('audio').removeAttribute('src');
+        $('audio').style.display = 'none';
+      }
+      renderTracks();
+      renderClipList();
+      renderTimeline();
+    }
+
+    function selectClip(id) {
+      if (!state.config.clips.some(c => c.id === id)) return;
+      state.config.selected_clip_id = id;
+      rerender();
+    }
+
+    function addClip(trackRel = null) {
+      const track = trackRel || state.selectedTrackRel || (state.tracks[0] && state.tracks[0].rel) || '';
+      if (!track) {
+        toast('BGM 파일을 먼저 추가하세요', 'err');
+        return;
+      }
+      const clip = normalizeClip({ track, timeline_start: 0, source_start: 0, duration: 0 });
+      state.config.clips.push(clip);
+      state.config.selected_clip_id = clip.id;
+      state.selectedTrackRel = track;
+      markDirty();
+      rerender();
+    }
+
+    function duplicateClip() {
+      const clip = selectedClip();
+      if (!clip) return;
+      const copy = normalizeClip(Object.assign({}, clip, {
+        id: '',
+        timeline_start: Number(clip.timeline_start || 0) + Math.max(0.1, clipDuration(clip)),
+      }));
+      if (state.finalDuration) copy.timeline_start = Math.min(copy.timeline_start, Math.max(0, state.finalDuration - 0.1));
+      state.config.clips.push(copy);
+      state.config.selected_clip_id = copy.id;
+      markDirty();
+      rerender();
+    }
+
+    function deleteClip() {
+      const clip = selectedClip();
+      if (!clip) return;
+      const idx = state.config.clips.findIndex(c => c.id === clip.id);
+      state.config.clips.splice(idx, 1);
+      const next = state.config.clips[Math.min(idx, state.config.clips.length - 1)];
+      state.config.selected_clip_id = next ? next.id : '';
+      markDirty();
+      rerender();
+    }
+
+    function readControls() {
+      const clip = selectedClip();
+      if (!clip) return;
+      clip.track = $('track-select').value || clip.track;
+      clip.timeline_start = Math.max(0, Number($('timeline-start').value || 0));
+      clip.source_start = Math.max(0, Number($('source-start').value || 0));
+      clip.duration = Math.max(0, Number($('duration').value || 0));
+      clip.volume = clamp($('volume').value, 0, 1);
+      clip.fade_in = Math.max(0, Number($('fade-in').value || 0));
+      clip.fade_out = Math.max(0, Number($('fade-out').value || 0));
+      clip.loop = $('loop').checked;
+      state.selectedTrackRel = clip.track;
+    }
+
+    function nudge(key, delta) {
+      const clip = selectedClip();
+      if (!clip) return;
+      clip[key] = Math.max(0, Number(clip[key] || 0) + delta);
+      markDirty();
+      rerender();
+    }
+
+    function toggleLoop() {
+      const clip = selectedClip();
+      if (!clip) return;
+      clip.loop = !clip.loop;
+      markDirty();
+      rerender();
+    }
+
+    async function loadData() {
+      setStatus('읽는 중');
+      setLoading(true, 'BGM 탭 읽는 중...', 'BGM 파일, 최종 렌더, 클립 설정을 확인하고 있습니다.');
+      const r = await fetch('/bgm_data');
+      const d = await r.json();
+      if (!r.ok || !d.ok) throw new Error(d.error || `HTTP ${r.status}`);
+      state.tracks = d.tracks || [];
+      state.config = Object.assign({ schema: 'sscut-bgm-v1', selected_clip_id: '', clips: [] }, d.config || {});
+      state.config.clips = (state.config.clips || []).map(normalizeClip);
+      if (!state.config.selected_clip_id && state.config.clips.length) state.config.selected_clip_id = state.config.clips[0].id;
+      state.selectedTrackRel = selectedClip() ? selectedClip().track : (state.tracks[0] && state.tracks[0].rel) || '';
+      state.bgmDir = d.bgm_dir || '';
+      state.finalPath = d.final_path || '';
+      state.finalExists = !!d.final_exists;
+      state.finalDuration = d.final_duration || 0;
+      state.outputPath = d.output_path || '';
+      state.dirty = false;
+      $('path-note').innerHTML =
+        `folder: <code>${escapeHtml(state.bgmDir)}</code><br>` +
+        `output: <code>${escapeHtml(state.outputPath)}</code>`;
+      renderVideo();
+      rerender();
+      setStatus(state.finalExists ? `final.mp4 ${fmtTime(state.finalDuration)} · ${state.config.clips.length} clips` : 'Final 렌더링 필요',
+        state.finalExists ? 'ok' : 'err');
+      setLoading(false);
+    }
+
+    async function saveConfig() {
+      if (state.saving) return;
+      readControls();
+      state.saving = true;
+      $('save-btn').disabled = true;
+      try {
+        const r = await fetch('/save_bgm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ config: state.config }),
+        });
+        const d = await r.json();
+        if (!r.ok || !d.ok) throw new Error(d.error || `HTTP ${r.status}`);
+        state.config = Object.assign(state.config, d.config || {});
+        state.config.clips = (state.config.clips || []).map(normalizeClip);
+        state.dirty = false;
+        rerender();
+        setStatus('저장됨', 'ok');
+        toast('저장됨', 'ok');
+      } finally {
+        state.saving = false;
+        $('save-btn').disabled = false;
+      }
+    }
+
+    async function uploadFile(file) {
+      if (!file) return;
+      setStatus('업로드 중');
+      const r = await fetch('/upload_bgm?filename=' + encodeURIComponent(file.name), {
+        method: 'POST',
+        body: file,
+      });
+      const d = await r.json();
+      if (!r.ok || !d.ok) throw new Error(d.error || `HTTP ${r.status}`);
+      await loadData();
+      addClip(d.track);
+      toast('오디오 추가됨', 'ok');
+    }
+
+    async function renderBgm() {
+      readControls();
+      const modal = $('render-modal');
+      const log = $('render-log');
+      const status = $('render-status');
+      const title = $('render-title');
+      const close = $('render-close');
+      modal.classList.add('show');
+      title.textContent = '🎵 BGM 렌더링 중...';
+      status.textContent = 'final.mp4에 BGM 클립을 믹스합니다.';
+      log.textContent = '시작...\n';
+      close.disabled = true;
+      $('render-btn').disabled = true;
+      try {
+        const r = await fetch('/render_bgm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ config: state.config }),
+        });
+        const d = await r.json();
+        log.textContent = d.log || '(no log)';
+        if (d.ok) {
+          state.dirty = false;
+          title.textContent = '완료';
+          status.innerHTML = `최종 파일: <code>${escapeHtml(d.final_path)}</code><br>길이: ${d.duration.toFixed(1)}s · 크기: ${d.size_mb.toFixed(1)}MB`;
+        } else {
+          title.textContent = '실패';
+          status.textContent = d.error || '알 수 없는 오류';
+        }
+      } catch (e) {
+        title.textContent = '실패';
+        status.textContent = e.message;
+        log.textContent += '\nERROR: ' + e.message;
+      } finally {
+        close.disabled = false;
+        $('render-btn').disabled = false;
+      }
+    }
+
+    async function exportProject() {
+      if (state.dirty) await saveConfig();
+      const fmt = $('export-format').value;
+      const modal = $('render-modal');
+      const log = $('render-log');
+      const status = $('render-status');
+      const title = $('render-title');
+      const close = $('render-close');
+      modal.classList.add('show');
+      title.textContent = '내보내는 중...';
+      status.textContent = fmt === 'finalcut' ? 'Final Cut FCPXML과 SRT를 생성합니다.' : 'CapCut import 패키지를 생성합니다.';
+      log.textContent = '시작...\n';
+      close.disabled = true;
+      $('export-btn').disabled = true;
+      try {
+        const r = await fetch('/export_project', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ format: fmt }),
+        });
+        const d = await r.json();
+        if (!r.ok || !d.ok) throw new Error(d.error || `HTTP ${r.status}`);
+        title.textContent = '완료';
+        status.innerHTML = `폴더: <code>${escapeHtml(d.folder)}</code><br>대표 파일: <code>${escapeHtml(d.path)}</code>`;
+        log.textContent = [
+          `format: ${d.format}`,
+          `cuts: ${d.cuts}`,
+          `duration: ${Number(d.duration || 0).toFixed(1)}s`,
+          `subtitles: ${d.subtitles}`,
+          `srt: ${d.srt}`,
+        ].join('\n');
+      } catch (e) {
+        title.textContent = '실패';
+        status.textContent = e.message;
+        log.textContent += '\nERROR: ' + e.message;
+      } finally {
+        close.disabled = false;
+        $('export-btn').disabled = false;
+      }
+    }
+
+    ['track-select', 'timeline-start', 'source-start', 'duration', 'volume', 'fade-in', 'fade-out', 'loop'].forEach(id => {
+      $(id).addEventListener('input', () => {
+        readControls();
+        markDirty();
+        refreshEditedControls();
+      });
+      $(id).addEventListener('change', () => {
+        readControls();
+        markDirty();
+        refreshEditedControls();
+      });
+    });
+    $('add-clip-btn').onclick = () => addClip();
+    $('dup-clip-btn').onclick = duplicateClip;
+    $('delete-clip-btn').onclick = deleteClip;
+    $('save-btn').onclick = () => saveConfig().catch(e => toast('저장 실패: ' + e.message, 'err'));
+    $('reload-btn').onclick = () => loadData().catch(e => toast('로딩 실패: ' + e.message, 'err'));
+    $('render-btn').onclick = () => renderBgm();
+    $('export-btn').onclick = () => exportProject();
+    $('render-close').onclick = () => $('render-modal').classList.remove('show');
+    $('upload-input').addEventListener('change', e => uploadFile(e.target.files[0]).catch(err => toast('업로드 실패: ' + err.message, 'err')));
+
+    const TAB_ORDER = ['/files', '/storyboard', '/picker', '/motion', '/sync', '/bgm'];
+    function moveTab(delta) {
+      const idx = Math.max(0, TAB_ORDER.indexOf(window.location.pathname));
+      const next = (idx + delta + TAB_ORDER.length) % TAB_ORDER.length;
+      window.location.href = TAB_ORDER[next];
+    }
+    function moveClip(delta) {
+      if (!state.config.clips.length) return;
+      const idx = Math.max(0, state.config.clips.findIndex(c => c.id === state.config.selected_clip_id));
+      const next = (idx + delta + state.config.clips.length) % state.config.clips.length;
+      selectClip(state.config.clips[next].id);
+    }
+    document.addEventListener('keydown', (e) => {
+      const code = e.code;
+      const tag = e.target && e.target.tagName;
+      if ((e.metaKey || e.ctrlKey) && code === 'KeyS') {
+        e.preventDefault();
+        saveConfig().catch(err => toast('저장 실패: ' + err.message, 'err'));
+        return;
+      }
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (code === 'KeyZ') { e.preventDefault(); moveTab(-1); }
+      else if (code === 'KeyX') { e.preventDefault(); moveTab(1); }
+      else if (code === 'KeyW') { e.preventDefault(); moveClip(-1); }
+      else if (code === 'KeyS') { e.preventDefault(); moveClip(1); }
+      else if (code === 'KeyA') { e.preventDefault(); nudge('timeline_start', -stepSize(e)); }
+      else if (code === 'KeyD') { e.preventDefault(); nudge('timeline_start', stepSize(e)); }
+      else if (code === 'KeyQ') { e.preventDefault(); nudge('source_start', -stepSize(e)); }
+      else if (code === 'KeyE') { e.preventDefault(); nudge('source_start', stepSize(e)); }
+      else if (code === 'KeyR') { e.preventDefault(); nudge('duration', -stepSize(e)); }
+      else if (code === 'KeyF') { e.preventDefault(); nudge('duration', stepSize(e)); }
+      else if (code === 'KeyC') { e.preventDefault(); addClip(); }
+      else if (code === 'KeyV') { e.preventDefault(); duplicateClip(); }
+      else if (code === 'KeyT') { e.preventDefault(); toggleLoop(); }
+      else if (code === 'KeyG') { e.preventDefault(); deleteClip(); }
+      else if (code === 'Space') {
+        e.preventDefault();
+        const a = $('audio');
+        if (a.src) a.paused ? a.play() : a.pause();
+      }
+    });
+
+    window.addEventListener('error', (e) => {
+      toast(`JS 에러: ${e.message}\n@ ${(e.filename||'').split('/').pop()}:${e.lineno}:${e.colno}`, 'err');
+    });
+    window.addEventListener('unhandledrejection', (e) => {
+      const r = e.reason;
+      toast(`Promise 에러: ${(r && r.message) || r}`, 'err');
+    });
+
+    loadData().catch(e => {
+      setStatus('로딩 실패', 'err');
+      loadingError(e);
+      toast('로딩 실패: ' + e.message, 'err');
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>SSCUT motion</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    body { display: flex; flex-direction: column; background: #1a1a1a; color: #e0e0e0;
+      font-size: 14px; }
+
+    header { display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 20px; background: #0d0d0d; border-bottom: 1px solid #2a2a2a; }
+    header .hdr-left { display: flex; align-items: center; gap: 16px; }
+    header .title { font-weight: 600; font-size: 15px; }
+    header .hdr-right { display: flex; align-items: center; gap: 12px; }
+    .actions button { background: #2a2a2a; color: #e0e0e0; border: 1px solid #3a3a3a;
+      padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+    .actions button:hover:not(:disabled) { background: #3a3a3a; color: #fff; }
+    .actions button:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    .missing-banner { background: #78350f; color: #fde68a;
+      padding: 8px 20px; border-bottom: 1px solid #92400e;
+      font-size: 13px; line-height: 1.5; }
+    .missing-banner code { background: rgba(0,0,0,0.3); padding: 1px 6px;
+      border-radius: 3px; font-family: ui-monospace, monospace; margin: 0 2px;
+      font-size: 11px; }
+    .missing-banner a { color: #fef3c7; text-decoration: underline;
+      margin-left: 8px; font-weight: 600; }
+    .missing-banner a:hover { color: #fff; }
+
+    .tool-nav { display: flex; gap: 0; background: #1a1a1a; border-radius: 5px;
+      padding: 2px; border: 1px solid #2a2a2a; }
+    .tool-link { padding: 5px 14px; border-radius: 3px; font-size: 12px;
+      color: #888; text-decoration: none; font-weight: 500;
+      transition: background 0.12s, color 0.12s; }
+    .tool-link:hover { background: #2a2a2a; color: #fff; }
+    .tool-link.active { background: #1e3a5f; color: #fff;
+      pointer-events: none; cursor: default; }
+
+    .help-trigger { position: relative; }
+    .help-btn { background: #2a2a2a; color: #e0e0e0; border: 1px solid #3a3a3a;
+      width: 28px; height: 28px; border-radius: 50%; cursor: help;
+      font-size: 14px; font-weight: 700; display: flex;
+      align-items: center; justify-content: center; padding: 0; }
+    .help-btn:hover { background: #3a3a3a; }
+    .settings-btn { background: #2a2a2a; color: #e0e0e0; border: 1px solid #3a3a3a;
+      width: 28px; height: 28px; border-radius: 50%; cursor: pointer; text-decoration: none;
+      font-size: 14px; display: flex; align-items: center; justify-content: center; padding: 0; }
+    .settings-btn:hover { background: #3a3a3a; color: #fff; }
+    .help-popover { display: none; position: absolute; top: calc(100% + 8px); right: 0;
+      background: #0d0d0d; border: 1px solid #3a3a3a; border-radius: 6px;
+      padding: 12px 16px; box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+      z-index: 50; white-space: nowrap; font-size: 12px; font-weight: 400; }
+    .help-trigger:hover .help-popover { display: block; }
+    .help-popover table { border-collapse: collapse; }
+    .help-popover td { padding: 4px 8px; }
+    .help-popover td:first-child { color: #fbbf24; font-family: ui-monospace, monospace; }
+    .help-popover td:last-child { color: #ccc; }
+    .help-popover kbd { background: #2a2a2a; padding: 1px 6px; border-radius: 3px;
+      border: 1px solid #444; font-family: ui-monospace, monospace; font-size: 11px;
+      color: #fff; }
+
+    .container { display: flex; flex: 1; overflow: hidden; }
+
+    .sidebar { width: 260px; background: #0d0d0d; border-right: 1px solid #2a2a2a;
+      overflow-y: auto; padding: 16px; flex-shrink: 0; }
+    .sidebar h3 { margin: 0 0 10px 0; font-size: 10px; text-transform: uppercase;
+      color: #666; letter-spacing: 1.2px; font-weight: 600; }
+    .cut-list { list-style: none; padding: 0; margin: 0; }
+    .cut-list li { padding: 8px 12px; margin: 2px 0; cursor: pointer;
+      border-radius: 4px; font-size: 13px; }
+    .cut-list li:hover { background: #1f1f1f; }
+    .cut-list li.active { background: #1e3a5f; color: #fff; }
+    .cut-list li .meta { display: block; font-size: 10px; color: #888;
+      font-family: monospace; margin-top: 3px; }
+    .cut-list li.active .meta { color: #b8d4ff; }
+
+    main { flex: 1; overflow-y: auto; padding: 20px 24px; display: flex;
+      flex-direction: column; gap: 14px; }
+
+    .cut-header { display: flex; align-items: center; justify-content: space-between; }
+    .cut-title { font-size: 17px; font-weight: 600; }
+    .cut-title .pos { color: #666; font-weight: 400; font-size: 13px; margin-right: 8px; }
+    .nav { display: flex; gap: 6px; }
+    .nav button { background: #2a2a2a; color: #e0e0e0; border: 1px solid #3a3a3a;
+      padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 13px; }
+    .nav button:hover:not(:disabled) { background: #3a3a3a; }
+    .nav button:disabled { opacity: 0.3; cursor: not-allowed; }
+
+    .preview-wrap { position: relative; max-width: 900px; align-self: center;
+      width: 100%; aspect-ratio: 16/9; background: #000; border-radius: 6px;
+      overflow: hidden; cursor: crosshair; user-select: none; }
+    .preview-img, .preview-video { width: 100%; height: 100%; object-fit: cover; display: block;
+      background: #000; }
+    .preview-video { display: none; }
+    .preview-img {
+      transform-origin: var(--fx, 50%) var(--fy, 50%);
+      pointer-events: none; }
+    .preview-wrap.external { cursor: default; }
+    .preview-wrap.external .focal-marker,
+    .preview-wrap.external .preview-progress,
+    .preview-wrap.external .preview-controls { display: none; }
+    /* transform 은 JS rAF 가 매 프레임 직접 설정 — CSS animation 의존 X.
+       이유: var() 가 들어간 animation shorthand 가 일부 브라우저에서 fragile,
+       reduce-motion 영향, 컷 전환 reset 문제 회피. */
+    .preview-progress { position: absolute; bottom: 0; left: 0; height: 3px;
+      background: #4ade80; width: 0%; pointer-events: none;
+      box-shadow: 0 0 6px rgba(74,222,128,0.6); }
+
+    .preview-controls { position: absolute; top: 10px; right: 10px; z-index: 5;
+      display: flex; gap: 4px; }
+    .preview-controls button {
+      background: rgba(0,0,0,0.6); color: #ddd;
+      border: 1px solid rgba(255,255,255,0.2);
+      padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 11px;
+      backdrop-filter: blur(4px); transition: background 0.12s, color 0.12s; }
+    .preview-controls button:hover { background: rgba(0,0,0,0.85); color: #fff; }
+    .preview-controls button.active { background: #1e3a5f;
+      border-color: #2a4d7a; color: #fff; }
+
+    .focal-marker {
+      position: absolute;
+      width: 36px; height: 36px;
+      border: 2px solid #fbbf24;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      box-shadow: 0 0 0 1px #000, 0 0 8px rgba(0,0,0,0.6);
+      left: var(--fx, 50%); top: var(--fy, 50%);
+    }
+    .focal-marker::before, .focal-marker::after {
+      content: ''; position: absolute; background: #fbbf24;
+      box-shadow: 0 0 0 1px #000;
+    }
+    .focal-marker::before { left: -14px; right: -14px; top: 50%; height: 1px; transform: translateY(-50%); }
+    .focal-marker::after { top: -14px; bottom: -14px; left: 50%; width: 1px; transform: translateX(-50%); }
+
+    .controls { background: #222; border-radius: 6px; padding: 16px;
+      display: flex; flex-direction: column; gap: 12px; max-width: 900px;
+      align-self: center; width: 100%; }
+    .controls.disabled { opacity: 0.45; pointer-events: none; }
+    .external-note { display: none; max-width: 900px; align-self: center; width: 100%;
+      background: #111827; border-left: 2px solid #60a5fa; color: #bfdbfe;
+      padding: 8px 12px; border-radius: 4px; font-size: 12px; }
+    .row { display: flex; align-items: center; gap: 12px; }
+    .row .label { color: #888; font-size: 11px; text-transform: uppercase;
+      letter-spacing: 0.5px; font-weight: 600; min-width: 80px; }
+    .row input[type="range"] { flex: 1; }
+    .row input[type="number"] { background: #1a1a1a; color: #fff;
+      border: 1px solid #3a3a3a; padding: 6px 10px; border-radius: 4px;
+      width: 80px; font-family: monospace; font-size: 14px; }
+    .row .value { color: #fbbf24; font-family: monospace; font-size: 13px;
+      min-width: 50px; text-align: right; }
+    .row button { background: #2a2a2a; color: #e0e0e0; border: 1px solid #3a3a3a;
+      padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+    .row button:hover { background: #3a3a3a; }
+
+    .type-group { display: flex; gap: 6px; flex-wrap: wrap; }
+    .type-btn { flex: 1 1 110px; background: #1a1a1a; color: #999; border: 1px solid #3a3a3a;
+      padding: 8px 10px; border-radius: 4px; cursor: pointer; font-size: 12px;
+      transition: all 0.12s; text-align: center; white-space: nowrap; }
+    .type-btn:hover { background: #252525; color: #fff; }
+    .type-btn.active { background: #1e3a5f; color: #fff; border-color: #2a4d7a; }
+
+    .narration-box { background: #1a1a1a; border-left: 2px solid #4ade80;
+      padding: 8px 12px; border-radius: 4px; font-size: 13px; color: #aaa;
+      max-width: 900px; align-self: center; width: 100%; }
+    .narration-box .lbl { color: #777; font-size: 10px; text-transform: uppercase;
+      letter-spacing: 0.5px; margin-bottom: 3px; }
+
+    .toast { position: fixed; bottom: 20px; right: 20px;
+      background: #1e3a5f; color: #fff; padding: 8px 16px; border-radius: 4px;
+      font-size: 12px; opacity: 0; transition: opacity 0.25s; pointer-events: none;
+      max-width: 600px; white-space: pre-wrap; }
+    .toast.show { opacity: 1; }
+    .toast.ok { background: #166534; }
+    .toast.err { background: #7f1d1d; cursor: pointer; padding-right: 36px;
+      pointer-events: auto; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+    .toast.err::after { content: '✕'; position: absolute; right: 12px; top: 50%;
+      transform: translateY(-50%); opacity: 0.7; font-weight: bold; }
+    .loading-overlay { position: fixed; inset: 0; z-index: 90; display: flex;
+      align-items: center; justify-content: center; background: rgba(13,13,13,0.86); }
+    .loading-overlay.hidden { display: none; }
+    .loading-card { min-width: 280px; max-width: 520px; background: #161616;
+      border: 1px solid #333; border-radius: 8px; padding: 18px 20px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.55); }
+    .loading-row { display: flex; align-items: center; gap: 12px; }
+    .loading-spinner { width: 18px; height: 18px; border-radius: 50%;
+      border: 2px solid #555; border-top-color: #7dd3fc; animation: spin 0.8s linear infinite; }
+    .loading-title { font-weight: 700; color: #fff; }
+    .loading-detail { margin-top: 8px; color: #999; font-size: 12px; line-height: 1.45;
+      white-space: pre-wrap; overflow-wrap: anywhere; }
+    .loading-overlay.err .loading-spinner { display: none; }
+    .loading-overlay.err .loading-title { color: #fca5a5; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+      display: none; align-items: center; justify-content: center; z-index: 100; }
+    .modal-backdrop.show { display: flex; }
+    .modal { background: #222; padding: 24px 32px; border-radius: 8px;
+      max-width: 640px; max-height: 80vh; overflow-y: auto; }
+    .modal h2 { margin: 0 0 14px 0; font-size: 16px; }
+    .modal pre { background: #0d0d0d; padding: 12px; border-radius: 4px;
+      font-size: 11px; color: #aaa; overflow: auto; max-height: 320px;
+      font-family: ui-monospace, monospace; }
+    .modal code { color: #ddd; font-family: ui-monospace, monospace; }
+    .modal .actions { display: flex; gap: 8px; justify-content: flex-end;
+      margin-top: 14px; }
+    .modal button { background: #2a2a2a; color: #fff; border: 1px solid #3a3a3a;
+      padding: 8px 16px; border-radius: 4px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="hdr-left">
+      <span class="title">🎯 <span id="story-title">모션</span></span>
+      <nav class="tool-nav">
+        <a href="/files" class="tool-link">📁 파일</a>
+        <a href="/storyboard" class="tool-link">📝 콘티</a>
+        <a href="/picker" class="tool-link">🖼 픽커</a>
+        <a href="/motion" class="tool-link active">🎯 모션</a>
+        <a href="/sync" class="tool-link">🎬 싱크</a>
+        <a href="/bgm" class="tool-link">🎵 BGM</a>
+      </nav>
+    </div>
+    <div class="hdr-right">
+      <a href="/settings" class="settings-btn" aria-label="설정" title="설정">⚙</a>
+      <span class="help-trigger">
+        <button class="help-btn" aria-label="키보드 단축키">?</button>
+        <div class="help-popover">
+          <table>
+            <tr><td><kbd>↑</kbd> <kbd>↓</kbd> / <kbd>W</kbd> <kbd>S</kbd></td><td>이전 / 다음 컷</td></tr>
+            <tr><td><kbd>Z</kbd> / <kbd>X</kbd></td><td>이전 / 다음 탭</td></tr>
+            <tr><td>이미지 클릭</td><td>그 점을 초점으로 설정</td></tr>
+            <tr><td><kbd>1</kbd> / <kbd>2</kbd></td><td>줌인 / 줌아웃</td></tr>
+            <tr><td><kbd>3</kbd> / <kbd>4</kbd></td><td>팬 (왼→오 / 오→왼)</td></tr>
+            <tr><td><kbd>5</kbd> / <kbd>6</kbd></td><td>흔들기 / 정지</td></tr>
+            <tr><td><kbd>C</kbd></td><td>초점을 중앙으로</td></tr>
+          </table>
+        </div>
+      </span>
+      <div class="actions">
+        <button id="render-btn">💾 Final 렌더링</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="missing-banner" id="missing-banner" style="display:none"></div>
+
+  <div class="container">
+    <aside class="sidebar">
+      <h3>컷 목록</h3>
+      <ul class="cut-list" id="cut-list"></ul>
+    </aside>
+
+    <main>
+      <div class="cut-header">
+        <div class="cut-title"><span class="pos" id="cut-pos">—</span><span id="cut-title">컷 없음</span></div>
+        <div class="nav">
+          <button id="prev-btn">↑ Prev</button>
+          <button id="next-btn">↓ Next</button>
+        </div>
+      </div>
+
+      <div class="preview-wrap" id="preview-wrap">
+        <img class="preview-img" id="preview-img" alt="cut image">
+        <video class="preview-video" id="preview-video" controls playsinline></video>
+        <div class="focal-marker" id="focal-marker"></div>
+        <div class="preview-progress" id="preview-progress"></div>
+        <div class="preview-controls">
+          <button id="loop-btn" class="active" title="편집 모드 — 반복 재생 (들숨날숨)">🔁 반복</button>
+          <button id="oneshot-btn" title="평가 모드 — 컷 길이대로 한 번 재생 후 정지 (실제 영상 매칭)">▶ 1회</button>
+        </div>
+      </div>
+
+      <div class="external-note" id="external-note">외부 영상 컷입니다. 원본 영상을 보면서 다음 컷으로 이어서 편집할 수 있습니다.</div>
+
+      <div class="controls" id="motion-controls">
+        <div class="row">
+          <span class="label">모션 타입</span>
+          <div class="type-group">
+            <button class="type-btn" data-type="zoom_in">줌인 ⊙ (1)</button>
+            <button class="type-btn" data-type="zoom_out">줌아웃 ⊗ (2)</button>
+            <button class="type-btn" data-type="pan_lr">← 팬 → (3)</button>
+            <button class="type-btn" data-type="pan_rl">→ 팬 ← (4)</button>
+            <button class="type-btn" data-type="shake">⇄ 흔들기 (5)</button>
+            <button class="type-btn" data-type="static">정지 ◽ (6)</button>
+          </div>
+        </div>
+        <div class="row">
+          <span class="label">효과 강도</span>
+          <input type="range" id="zoom-slider" min="0" max="0.30" step="0.01" value="0.10">
+          <span class="value" id="zoom-value">10%</span>
+        </div>
+        <div class="row">
+          <span class="label">초점</span>
+          <span class="value">x = <span id="fx-label">50%</span> · y = <span id="fy-label">50%</span></span>
+          <button id="center-btn">중앙으로 (C)</button>
+        </div>
+      </div>
+
+      <div class="narration-box">
+        <div class="lbl">나레이션 (참고용)</div>
+        <div id="narration-text">—</div>
+      </div>
+    </main>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <div class="loading-overlay" id="loading-overlay">
+    <div class="loading-card">
+      <div class="loading-row">
+        <div class="loading-spinner"></div>
+        <div class="loading-title" id="loading-title">모션 탭 읽는 중...</div>
+      </div>
+      <div class="loading-detail" id="loading-detail">선택된 컷과 프리뷰 영상을 확인하고 있습니다.</div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="render-modal">
+    <div class="modal">
+      <h2 id="render-title">🎬 렌더링 중...</h2>
+      <div id="render-status" style="margin-bottom:12px;color:#aaa">잠시만요.</div>
+      <pre id="render-log">대기 중...</pre>
+      <div class="actions">
+        <button id="render-close" disabled>닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const state = { cuts: [], idx: 0, saving: false, savePending: false, savePromise: null, dirtyCuts: {} };
+    const $ = id => document.getElementById(id);
+
+    function escapeHtml(s) {
+      const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML;
+    }
+
+    function toast(msg, kind = '') {
+      const t = $('toast'); t.textContent = msg;
+      t.className = 'toast show ' + kind;
+      clearTimeout(window._tt);
+      if (kind !== 'err') {
+        window._tt = setTimeout(() => t.classList.remove('show'), 1800);
+      }
+    }
+    function setLoading(show, title = '읽는 중...', detail = '', isError = false) {
+      const o = $('loading-overlay');
+      if (!o) return;
+      $('loading-title').textContent = title;
+      $('loading-detail').textContent = detail;
+      o.classList.toggle('hidden', !show);
+      o.classList.toggle('err', !!isError);
+    }
+    function loadingError(e) {
+      setLoading(true, '로딩 실패', (e && e.message) || String(e), true);
+    }
+
+    $('toast').addEventListener('click', () => $('toast').classList.remove('show'));
+    window.addEventListener('error', (e) => {
+      toast(`JS 에러: ${e.message}\n@ ${(e.filename||'').split('/').pop()}:${e.lineno}:${e.colno}`, 'err');
+    });
+    window.addEventListener('unhandledrejection', (e) => {
+      const r = e.reason;
+      toast(`Promise 에러: ${(r && r.message) || r}`, 'err');
+    });
+
+    function isExternalCut(c) {
+      return !!(c && (c.is_external_video || (c.selected_type === 'video' && c.video_url && !c.image_url)));
+    }
+
+    function isEditableCut(c) {
+      return !!(c && c.selected && c.image_url && c.motion && !isExternalCut(c));
+    }
+
+    async function loadData() {
+      setLoading(true, '모션 탭 읽는 중...', '선택된 컷과 프리뷰 영상을 확인하고 있습니다.');
+      try {
+        const r = await fetch('/data');
+        const d = await r.json();
+        const allCuts = d.cuts || [];
+        // 이미지 컷은 모션 편집, 외부 영상 컷은 영상 미리보기용으로 포함.
+        state.cuts = allCuts.filter(c => isEditableCut(c) || (c.selected && isExternalCut(c) && c.video_url));
+        state.unselectedCutIds = allCuts.filter(c => !c.selected).map(c => c.cut_id);
+        // 외부 영상 컷은 별도로 표시 (모션 적용 안 됨)
+        state.externalVideoCutIds = allCuts.filter(c => c.is_external_video).map(c => c.cut_id);
+        state.editableCount = state.cuts.filter(isEditableCut).length;
+        $('story-title').textContent = d.title || '모션';
+        renderMissingBanner(state.editableCount, allCuts.length);
+        if (!state.cuts.length) {
+          $('cut-title').textContent = '편집 가능한 컷 없음';
+          $('cut-list').innerHTML = '';
+          $('narration-text').textContent = state.externalVideoCutIds.length
+            ? '모든 컷이 외부 영상 — 모션 편집 불가 (영상에 이미 모션 있음)'
+            : '픽커 탭에서 컷별 이미지 먼저 선택 → 이 탭 새로고침';
+          setLoading(false);
+          return;
+        }
+        renderSidebar();
+        goTo(0);
+        setLoading(false);
+      } catch (e) {
+        loadingError(e);
+        throw e;
+      }
+    }
+
+    function renderMissingBanner(selected, total) {
+      const banner = $('missing-banner');
+      const missing = state.unselectedCutIds || [];
+      if (!missing.length) {
+        banner.style.display = 'none';
+        return;
+      }
+      const summary = `${selected}/${total} 컷 모션 편집 가능 · 미선택: ${missing.map(id => `<code>${escapeHtml(id)}</code>`).join(', ')}`;
+      banner.innerHTML = `⚠️ ${summary} <a href="/picker">→ 픽커</a>`;
+      banner.style.display = 'block';
+    }
+
+    function renderSidebar() {
+      $('cut-list').innerHTML = state.cuts.map((c, i) => {
+        if (isExternalCut(c)) {
+          const dur = c.duration ? `${Number(c.duration).toFixed(1)}s` : 'video';
+          return `<li data-i="${i}" class="${i === state.idx ? 'active' : ''}">
+            <span>${i+1}. ${escapeHtml(c.cut_id)}</span>
+            <span class="meta">외부 영상 · ${escapeHtml(dur)}</span>
+          </li>`;
+        }
+        const m = c.motion;
+        const typeLabel = {zoom_in:'줌인', zoom_out:'줌아웃', static:'정지'}[m.type] || m.type;
+        return `<li data-i="${i}" class="${i === state.idx ? 'active' : ''}">
+          <span>${i+1}. ${escapeHtml(c.cut_id)}</span>
+          <span class="meta">${typeLabel} · ${(m.zoom_amount*100).toFixed(0)}% · (${(m.focal_x*100).toFixed(0)},${(m.focal_y*100).toFixed(0)})</span>
+        </li>`;
+      }).join('');
+      $('cut-list').querySelectorAll('li').forEach(li => {
+        li.onclick = () => goTo(parseInt(li.dataset.i));
+      });
+    }
+
+    function curCut() { return state.cuts[state.idx]; }
+
+    function goTo(i) {
+      if (i < 0 || i >= state.cuts.length) return;
+      state.idx = i;
+      const c = curCut();
+      $('cut-pos').textContent = `${i+1}/${state.cuts.length}`;
+      $('cut-title').textContent = c.cut_id;
+      $('narration-text').textContent = c.narration || '(없음)';
+      if (isExternalCut(c)) {
+        showExternalVideo(c);
+      } else {
+        showImageMotion(c);
+      }
+      $('prev-btn').disabled = i === 0;
+      $('next-btn').disabled = i === state.cuts.length - 1;
+      renderSidebar();
+    }
+
+    function showExternalVideo(c) {
+      if (state.animId) cancelAnimationFrame(state.animId);
+      state.animId = null;
+      const wrap = $('preview-wrap');
+      const img = $('preview-img');
+      const video = $('preview-video');
+      wrap.classList.add('external');
+      img.removeAttribute('src');
+      img.style.display = 'none';
+      img.style.transform = '';
+      video.src = c.video_url;
+      video.style.display = 'block';
+      $('preview-progress').style.width = '0%';
+      $('external-note').style.display = 'block';
+      $('motion-controls').classList.add('disabled');
+    }
+
+    function showImageMotion(c) {
+      const wrap = $('preview-wrap');
+      const img = $('preview-img');
+      const video = $('preview-video');
+      video.pause();
+      video.removeAttribute('src');
+      video.style.display = 'none';
+      wrap.classList.remove('external');
+      img.style.display = 'block';
+      img.src = c.image_url;
+      $('external-note').style.display = 'none';
+      $('motion-controls').classList.remove('disabled');
+      applyMotionUI();
+    }
+
+    // 효과 강도 슬라이더 값 → 타입별 단위 (% / x / Hz)
+    function effectDisplay(m) {
+      const v = m.zoom_amount;
+      if (m.type === 'pan_lr' || m.type === 'pan_rl') {
+        return Math.max(0.1, v * 10).toFixed(1) + 'x';
+      }
+      if (m.type === 'shake') {
+        return Math.max(0.5, v * 20).toFixed(1) + ' Hz';
+      }
+      if (m.type === 'static') return '—';
+      return (v * 100).toFixed(0) + '%';  // zoom_in / zoom_out
+    }
+
+    function applyMotionUI() {
+      const c = curCut();
+      if (!isEditableCut(c)) return;
+      const m = c.motion;
+      const wrap = $('preview-wrap');
+
+      // transform-origin 용 focal CSS 변수
+      wrap.style.setProperty('--fx', (m.focal_x * 100).toFixed(1) + '%');
+      wrap.style.setProperty('--fy', (m.focal_y * 100).toFixed(1) + '%');
+
+      // 타입 버튼 active
+      document.querySelectorAll('.type-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.type === m.type);
+      });
+
+      // 슬라이더 값. 타입별 단위로 표시 (% / x / Hz).
+      $('zoom-slider').value = m.zoom_amount;
+      $('zoom-value').textContent = effectDisplay(m);
+      $('fx-label').textContent = (m.focal_x * 100).toFixed(0) + '%';
+      $('fy-label').textContent = (m.focal_y * 100).toFixed(0) + '%';
+
+      // 애니메이션 재시작 — JS rAF
+      restartAnimation();
+    }
+
+    // ── rAF 기반 모션 미리보기 (CSS animation 의존 X) ──
+    function tickAnimation(now) {
+      const c = curCut();
+      if (!c) { state.animId = null; return; }
+      if (!isEditableCut(c)) { state.animId = null; return; }
+      const m = c.motion;
+      const img = $('preview-img');
+      const bar = $('preview-progress');
+      const duration = (c.duration || 3.5) * 1000;  // ms
+      const elapsed = now - state.animStart;
+
+      let progress;  // 0..1
+      let done = false;
+      if (state.oneShot) {
+        progress = Math.min(elapsed / duration, 1);
+        if (progress >= 1) done = true;
+      } else {
+        // 반복 alternate + ease-in-out
+        const cycle = (elapsed / duration) % 2;
+        let raw = cycle > 1 ? 2 - cycle : cycle;
+        // ease-in-out cubic
+        progress = raw < 0.5
+          ? 2 * raw * raw
+          : 1 - Math.pow(-2 * raw + 2, 2) / 2;
+      }
+
+      // 효과 강도 슬라이더 의미 — 타입별로 다름
+      const v = m.zoom_amount;
+      const PAN_ROOM = 0.10;    // pan: 고정 10% scale (이동 여유)
+      const SHAKE_ROOM = 0.05;  // shake: 고정 5% scale (사용자 요청)
+      const panSpeed = Math.max(0.1, v * 10);    // 0.10 슬라이더 → 1.0x
+      const shakeFreq = Math.max(0.5, v * 20);   // 0.10 슬라이더 → 2.0 Hz
+
+      let scale = 1;
+      let originX = m.focal_x * 100;
+      let originY = m.focal_y * 100;
+
+      if (m.type === 'zoom_in') {
+        scale = 1 + v * progress;
+      } else if (m.type === 'zoom_out') {
+        scale = 1 + v * (1 - progress);
+      } else if (m.type === 'pan_lr') {
+        scale = 1 + PAN_ROOM;
+        // speed 가 빠르면 일찍 끝, 느리면 부분만 진행. 반복 모드는 alternate.
+        let panProg;
+        if (state.oneShot) {
+          panProg = Math.min((elapsed * panSpeed) / duration, 1);
+        } else {
+          const cycle = ((elapsed * panSpeed) / duration) % 2;
+          panProg = cycle > 1 ? 2 - cycle : cycle;
+        }
+        originX = panProg * 100;
+      } else if (m.type === 'pan_rl') {
+        scale = 1 + PAN_ROOM;
+        let panProg;
+        if (state.oneShot) {
+          panProg = Math.min((elapsed * panSpeed) / duration, 1);
+        } else {
+          const cycle = ((elapsed * panSpeed) / duration) % 2;
+          panProg = cycle > 1 ? 2 - cycle : cycle;
+        }
+        originX = (1 - panProg) * 100;
+      } else if (m.type === 'shake') {
+        scale = 1 + SHAKE_ROOM;
+        // sin 진동, ±50% origin shift (ffmpeg 의 half-range pixel shift 와 매칭)
+        const elapsedSec = elapsed / 1000;
+        const osc = Math.sin(elapsedSec * shakeFreq * 2 * Math.PI) * 50;
+        originX = Math.max(0, Math.min(100, m.focal_x * 100 + osc));
+      } else {
+        scale = 1;  // static
+      }
+
+      img.style.transformOrigin = `${originX.toFixed(2)}% ${originY.toFixed(2)}%`;
+      img.style.transform = `scale(${scale.toFixed(4)})`;
+      bar.style.width = `${(progress * 100).toFixed(2)}%`;
+
+      if (done) {
+        state.animId = null;
+        return;
+      }
+      state.animId = requestAnimationFrame(tickAnimation);
+    }
+
+    function restartAnimation() {
+      if (state.animId) cancelAnimationFrame(state.animId);
+      if (!isEditableCut(curCut())) {
+        state.animId = null;
+        return;
+      }
+      state.animStart = performance.now();
+      state.animId = requestAnimationFrame(tickAnimation);
+    }
+
+    function setPreviewMode(oneShot) {
+      state.oneShot = oneShot;
+      $('loop-btn').classList.toggle('active', !oneShot);
+      $('oneshot-btn').classList.toggle('active', oneShot);
+      restartAnimation();
+    }
+    // stopPropagation: 버튼 클릭이 preview-wrap (focal 설정) 으로 버블 안 되게
+    $('loop-btn').onclick = (e) => { e.stopPropagation(); setPreviewMode(false); };
+    $('oneshot-btn').onclick = (e) => { e.stopPropagation(); setPreviewMode(true); };
+
+    let saveDebounce;
+    function markDirty(c) {
+      if (isEditableCut(c)) state.dirtyCuts[c.cut_id] = c;
+    }
+
+    function scheduleSave(c = curCut()) {
+      markDirty(c);
+      clearTimeout(saveDebounce);
+      saveDebounce = setTimeout(saveDirtyCuts, 400);
+    }
+
+    async function saveCurrent() {
+      markDirty(curCut());
+      clearTimeout(saveDebounce);
+      return saveDirtyCuts();
+    }
+
+    async function saveDirtyCuts() {
+      if (state.saving) {
+        state.savePending = true;
+        return state.savePromise;
+      }
+      const dirty = Object.values(state.dirtyCuts);
+      state.dirtyCuts = {};
+      if (!dirty.length) return Promise.resolve();
+      state.saving = true;
+      state.savePromise = (async () => {
+        try {
+          for (const c of dirty) {
+            if (!isEditableCut(c)) continue;
+            const r = await fetch('/save_motion', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ cut_id: c.cut_id, motion: c.motion }),
+            });
+            if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          }
+          toast('💾 저장됨', 'ok');
+          renderSidebar();
+        } catch (e) {
+          toast('저장 실패: ' + e.message, 'err');
+        } finally {
+          state.saving = false;
+          if (state.savePending || Object.keys(state.dirtyCuts).length) {
+            state.savePending = false;
+            return saveDirtyCuts();
+          }
+        }
+      })();
+      return state.savePromise;
+    }
+
+    function setFocal(fx, fy) {
+      const c = curCut();
+      if (!isEditableCut(c)) return;
+      c.motion.focal_x = Math.max(0, Math.min(1, fx));
+      c.motion.focal_y = Math.max(0, Math.min(1, fy));
+      applyMotionUI();
+      scheduleSave(c);
+    }
+
+    function setType(type) {
+      const c = curCut();
+      if (!isEditableCut(c)) return;
+      c.motion.type = type;
+      applyMotionUI();
+      scheduleSave(c);
+    }
+
+    function setZoomAmount(amt) {
+      const c = curCut();
+      if (!isEditableCut(c)) return;
+      c.motion.zoom_amount = Math.max(0, Math.min(0.30, amt));
+      applyMotionUI();
+      scheduleSave(c);
+    }
+
+    // 이미지 클릭 → focal. 단 controls 영역(버튼) 클릭은 무시.
+    $('preview-wrap').addEventListener('click', (e) => {
+      if (e.target.closest('.preview-controls')) return;
+      if (!isEditableCut(curCut())) return;
+      const rect = $('preview-wrap').getBoundingClientRect();
+      const fx = (e.clientX - rect.left) / rect.width;
+      const fy = (e.clientY - rect.top) / rect.height;
+      setFocal(fx, fy);
+    });
+
+    document.querySelectorAll('.type-btn').forEach(b => {
+      b.onclick = () => setType(b.dataset.type);
+    });
+
+    $('zoom-slider').addEventListener('input', () => {
+      setZoomAmount(parseFloat($('zoom-slider').value));
+    });
+
+    $('center-btn').onclick = () => setFocal(0.5, 0.5);
+    $('prev-btn').onclick = () => goTo(state.idx - 1);
+    $('next-btn').onclick = () => goTo(state.idx + 1);
+
+    const TAB_ORDER = ['/files', '/storyboard', '/picker', '/motion', '/sync', '/bgm'];
+    function moveTab(delta) {
+      const idx = Math.max(0, TAB_ORDER.indexOf(window.location.pathname));
+      const next = (idx + delta + TAB_ORDER.length) % TAB_ORDER.length;
+      window.location.href = TAB_ORDER[next];
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      const code = e.code;
+      if (code === 'KeyZ') { e.preventDefault(); moveTab(-1); }
+      else if (code === 'KeyX') { e.preventDefault(); moveTab(1); }
+      else if (code === 'ArrowUp' || code === 'KeyW') { e.preventDefault(); goTo(state.idx - 1); }
+      else if (code === 'ArrowDown' || code === 'KeyS') { e.preventDefault(); goTo(state.idx + 1); }
+      else if (code === 'Digit1' || code === 'Numpad1') { e.preventDefault(); setType('zoom_in'); }
+      else if (code === 'Digit2' || code === 'Numpad2') { e.preventDefault(); setType('zoom_out'); }
+      else if (code === 'Digit3' || code === 'Numpad3') { e.preventDefault(); setType('pan_lr'); }
+      else if (code === 'Digit4' || code === 'Numpad4') { e.preventDefault(); setType('pan_rl'); }
+      else if (code === 'Digit5' || code === 'Numpad5') { e.preventDefault(); setType('shake'); }
+      else if (code === 'Digit6' || code === 'Numpad6') { e.preventDefault(); setType('static'); }
+      else if (code === 'KeyC') { e.preventDefault(); setFocal(0.5, 0.5); }
+    });
+
+    $('render-btn').onclick = async () => {
+      await saveCurrent();
+      const modal = $('render-modal');
+      const log = $('render-log');
+      const status = $('render-status');
+      const title = $('render-title');
+      const close = $('render-close');
+      modal.classList.add('show');
+      title.textContent = '🎬 렌더링 중...';
+      status.textContent = '최신 모션 저장 후 각 컷 자막 burn-in + concat 진행 중.';
+      log.textContent = '시작...\n';
+      close.disabled = true;
+      $('render-btn').disabled = true;
+      try {
+        const r = await fetch('/render', { method: 'POST' });
+        const d = await r.json();
+        log.textContent = d.log || '(no log)';
+        if (d.ok) {
+          title.textContent = '✅ 완료';
+          status.innerHTML = `최종 파일: <code>${escapeHtml(d.final_path)}</code><br>길이: ${d.duration.toFixed(1)}s · 크기: ${d.size_mb.toFixed(1)}MB`;
+        } else {
+          title.textContent = '❌ 실패';
+          status.textContent = d.error || '알 수 없는 오류';
+        }
+      } catch (e) {
+        title.textContent = '❌ 실패';
+        status.textContent = e.message;
+        log.textContent += '\nERROR: ' + e.message;
+      } finally {
+        close.disabled = false;
+        $('render-btn').disabled = false;
+      }
+    };
+    $('render-close').onclick = () => $('render-modal').classList.remove('show');
+
+    loadData().catch(e => {
+      loadingError(e);
+      toast('로딩 실패: ' + e.message, 'err');
+    });
+  </script>
+</body>
+</html>

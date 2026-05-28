@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>SSCUT files</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    body { display: flex; flex-direction: column; background: #1a1a1a; color: #e0e0e0;
+      font-size: 14px; }
+    header { display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 20px; background: #0d0d0d; border-bottom: 1px solid #2a2a2a; }
+    header .hdr-left { display: flex; align-items: center; gap: 16px; min-width: 0; }
+    header .hdr-right { display: flex; align-items: center; gap: 8px; }
+    header .title { font-weight: 600; font-size: 15px; white-space: nowrap; }
+    .tool-nav { display: flex; gap: 0; background: #1a1a1a; border-radius: 5px;
+      padding: 2px; border: 1px solid #2a2a2a; }
+    .tool-link { padding: 5px 14px; border-radius: 3px; font-size: 12px;
+      color: #888; text-decoration: none; font-weight: 500;
+      transition: background 0.12s, color 0.12s; }
+    .tool-link:hover { background: #2a2a2a; color: #fff; }
+    .tool-link.active { background: #1e3a5f; color: #fff;
+      pointer-events: none; cursor: default; }
+    .settings-btn { background: #2a2a2a; color: #e0e0e0; border: 1px solid #3a3a3a;
+      width: 30px; height: 30px; border-radius: 50%; cursor: pointer; text-decoration: none;
+      font-size: 15px; display: flex; align-items: center; justify-content: center; padding: 0; }
+    .settings-btn:hover { background: #3a3a3a; color: #fff; }
+    .help-trigger { position: relative; }
+    .help-btn { background: #2a2a2a; color: #e0e0e0; border: 1px solid #3a3a3a;
+      width: 30px; height: 30px; border-radius: 50%; cursor: help;
+      font-size: 14px; font-weight: 700; display: flex;
+      align-items: center; justify-content: center; padding: 0; }
+    .help-btn:hover { background: #3a3a3a; }
+    .help-popover { display: none; position: absolute; top: calc(100% + 8px); right: 0;
+      background: #0d0d0d; border: 1px solid #3a3a3a; border-radius: 6px;
+      padding: 12px 16px; box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+      z-index: 50; white-space: nowrap; font-size: 12px; font-weight: 400; }
+    .help-trigger:hover .help-popover { display: block; }
+    .help-popover table { border-collapse: collapse; }
+    .help-popover td { padding: 4px 8px; }
+    .help-popover td:first-child { color: #fbbf24; font-family: ui-monospace, monospace; }
+    .help-popover td:last-child { color: #ccc; }
+    .help-popover kbd { background: #2a2a2a; padding: 1px 6px; border-radius: 3px;
+      border: 1px solid #444; font-family: ui-monospace, monospace; font-size: 11px;
+      color: #fff; }
+
+    .bar { display: flex; align-items: center; gap: 8px; padding: 12px 20px;
+      background: #111; border-bottom: 1px solid #2a2a2a; }
+    .bar input { flex: 1; min-width: 0; background: #1a1a1a; color: #fff;
+      border: 1px solid #3a3a3a; padding: 8px 10px; border-radius: 4px;
+      font-family: ui-monospace, monospace; font-size: 12px; }
+    .bar button { background: #2a2a2a; color: #e0e0e0; border: 1px solid #3a3a3a;
+      padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+    .bar button:hover { background: #3a3a3a; }
+
+    .container { display: flex; flex: 1; min-height: 0; overflow: hidden; }
+    aside { width: 320px; flex-shrink: 0; background: #0d0d0d;
+      border-right: 1px solid #2a2a2a; overflow-y: auto; padding: 14px; }
+    .summary { color: #888; font-size: 11px; margin-bottom: 8px; line-height: 1.35; }
+    .summary details { border: 1px solid #252525; background: #111;
+      border-radius: 6px; padding: 7px 9px; }
+    .summary summary { cursor: pointer; color: #aaa; list-style-position: outside; }
+    .summary code { display: inline-block; max-width: 100%; color: #bbb;
+      background: #161616; padding: 1px 5px; border-radius: 3px;
+      font-family: ui-monospace, monospace; overflow: hidden;
+      text-overflow: ellipsis; vertical-align: bottom; }
+    .summary .detail { margin-top: 8px; display: grid; gap: 5px; }
+    .summary .label { color: #666; display: block; margin-bottom: 2px;
+      text-transform: uppercase; letter-spacing: 0.4px; font-size: 9px; }
+    .file-list { list-style: none; margin: 0; padding: 0; }
+    .file-list li { padding: 6px 8px; margin: 1px 0; border-radius: 4px;
+      cursor: pointer; color: #aaa; overflow: hidden; }
+    .file-list li:hover { background: #1f1f1f; color: #fff; }
+    .file-list li.active { background: #1e3a5f; color: #fff; }
+    .file-list .name { display: block; white-space: nowrap; overflow: hidden;
+      text-overflow: ellipsis; font-size: 12px; }
+    .file-list .meta { display: block; color: #777; font-family: ui-monospace, monospace;
+      font-size: 9px; margin-top: 2px; }
+    .file-list li.active .meta { color: #b8d4ff; }
+
+    main { flex: 1; min-width: 0; overflow: auto; padding: 18px 22px; }
+    .preview-title { display: flex; justify-content: space-between; gap: 12px;
+      align-items: center; margin-bottom: 12px; }
+    .preview-title .name { font-size: 16px; font-weight: 600; }
+    .preview-title .path { color: #777; font-family: ui-monospace, monospace;
+      font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .preview img, .preview video, .preview audio { max-width: 100%; max-height: calc(100vh - 190px);
+      background: #000; border: 1px solid #333; border-radius: 6px; display: block; }
+    .preview pre { margin: 0; background: #111; border: 1px solid #333; border-radius: 6px;
+      padding: 14px; color: #ddd; font-family: ui-monospace, monospace; font-size: 12px;
+      line-height: 1.5; white-space: pre-wrap; overflow: auto; max-height: calc(100vh - 190px); }
+    .empty { color: #666; text-align: center; padding: 48px 12px; }
+    .toast { position: fixed; bottom: 20px; right: 20px; background: #7f1d1d;
+      color: #fff; padding: 8px 16px; border-radius: 4px; font-size: 12px;
+      opacity: 0; transition: opacity 0.25s; max-width: 600px; white-space: pre-wrap; }
+    .toast.show { opacity: 1; }
+    .loading-overlay { position: fixed; inset: 0; z-index: 90; display: flex;
+      align-items: center; justify-content: center; background: rgba(13,13,13,0.86); }
+    .loading-overlay.hidden { display: none; }
+    .loading-card { min-width: 280px; max-width: 520px; background: #161616;
+      border: 1px solid #333; border-radius: 8px; padding: 18px 20px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.55); }
+    .loading-row { display: flex; align-items: center; gap: 12px; }
+    .loading-spinner { width: 18px; height: 18px; border-radius: 50%;
+      border: 2px solid #555; border-top-color: #7dd3fc; animation: spin 0.8s linear infinite; }
+    .loading-title { font-weight: 700; color: #fff; }
+    .loading-detail { margin-top: 8px; color: #999; font-size: 12px; line-height: 1.45;
+      white-space: pre-wrap; overflow-wrap: anywhere; }
+    .loading-overlay.err .loading-spinner { display: none; }
+    .loading-overlay.err .loading-title { color: #fca5a5; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="hdr-left">
+      <span class="title">📁 <span id="title">파일</span></span>
+      <nav class="tool-nav">
+        <a href="/files" class="tool-link active">📁 파일</a>
+        <a href="/storyboard" class="tool-link">📝 콘티</a>
+        <a href="/picker" class="tool-link">🖼 픽커</a>
+        <a href="/motion" class="tool-link">🎯 모션</a>
+        <a href="/sync" class="tool-link">🎬 싱크</a>
+        <a href="/bgm" class="tool-link">🎵 BGM</a>
+      </nav>
+    </div>
+    <div class="hdr-right">
+      <a href="/settings" class="settings-btn" aria-label="설정" title="설정">⚙</a>
+      <span class="help-trigger">
+        <button class="help-btn" aria-label="키보드 단축키">?</button>
+        <div class="help-popover">
+          <table>
+            <tr><td><kbd>Z</kbd> / <kbd>X</kbd></td><td>이전 / 다음 탭</td></tr>
+            <tr><td><kbd>↑</kbd> <kbd>↓</kbd></td><td>파일 목록 이동</td></tr>
+            <tr><td><kbd>Enter</kbd></td><td>선택한 폴더 열기</td></tr>
+            <tr><td>경로 입력 + <kbd>Enter</kbd></td><td>해당 폴더 열기</td></tr>
+          </table>
+        </div>
+      </span>
+    </div>
+  </header>
+
+  <div class="bar">
+    <input id="folder-path" placeholder="/path/to/project-or-output-folder">
+    <button id="choose-btn">폴더 선택...</button>
+    <button id="open-btn">열기</button>
+    <button id="parent-btn">상위</button>
+    <button id="project-btn">프로젝트</button>
+    <button id="set-project-btn">프로젝트로 설정</button>
+  </div>
+
+  <div class="container">
+    <aside>
+      <div class="summary" id="summary">읽는 중</div>
+      <ul class="file-list" id="file-list"></ul>
+    </aside>
+    <main>
+      <div class="preview-title">
+        <div class="name" id="preview-name">파일 선택</div>
+        <div class="path" id="preview-path"></div>
+      </div>
+      <div class="preview" id="preview"><div class="empty">콘티, 이미지, 영상, JSON 파일을 선택하세요.</div></div>
+    </main>
+  </div>
+
+  <div class="loading-overlay" id="loading-overlay">
+    <div class="loading-card">
+      <div class="loading-row">
+        <div class="loading-spinner"></div>
+        <div class="loading-title" id="loading-title">프로젝트 읽는 중...</div>
+      </div>
+      <div class="loading-detail" id="loading-detail">폴더와 파일 목록을 확인하고 있습니다.</div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const state = {
+      root: '', parent: '', projectRoot: '', outputDir: '', storyboard: '',
+      dirs: [], files: [], entries: [], idx: -1,
+    };
+    const $ = id => document.getElementById(id);
+
+    function escapeHtml(s) {
+      const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML;
+    }
+    function fmtSize(n) {
+      if (n > 1024 * 1024) return (n / 1024 / 1024).toFixed(1) + 'MB';
+      if (n > 1024) return (n / 1024).toFixed(1) + 'KB';
+      return n + 'B';
+    }
+    function basename(path) {
+      const parts = String(path || '').split('/').filter(Boolean);
+      return parts[parts.length - 1] || path || '';
+    }
+    function toast(msg) {
+      const t = $('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      clearTimeout(window._tt);
+      window._tt = setTimeout(() => t.classList.remove('show'), 2500);
+    }
+    function setLoading(show, title = '읽는 중...', detail = '', isError = false) {
+      const o = $('loading-overlay');
+      if (!o) return;
+      $('loading-title').textContent = title;
+      $('loading-detail').textContent = detail;
+      o.classList.toggle('hidden', !show);
+      o.classList.toggle('err', !!isError);
+    }
+    function loadingError(e) {
+      setLoading(true, '로딩 실패', (e && e.message) || String(e), true);
+    }
+
+    async function loadFiles(path) {
+      setLoading(true, '폴더 읽는 중...', path || '프로젝트 파일 목록을 가져오는 중입니다.');
+      try {
+        const url = '/files_data' + (path ? '?path=' + encodeURIComponent(path) : '');
+        const r = await fetch(url);
+        const d = await r.json();
+        if (!r.ok || !d.ok) throw new Error(d.error || `HTTP ${r.status}`);
+        state.root = d.root;
+        state.parent = d.parent;
+        state.projectRoot = d.project_root || d.project_output_dir;
+        state.outputDir = d.output_dir || d.project_output_dir || state.projectRoot;
+        state.storyboard = d.storyboard || '';
+        state.dirs = d.dirs || [];
+        state.files = d.files || [];
+        const parentEntry = state.parent && state.parent !== state.root
+          ? [{ name: '..', path: state.parent, rel: '..', kind: 'folder', size: null, isParent: true }]
+          : [];
+        state.entries = [...parentEntry, ...state.dirs, ...state.files];
+        state.idx = -1;
+        $('folder-path').value = state.root;
+        $('title').textContent = state.root.split('/').filter(Boolean).pop() || state.root;
+        const projectName = basename(state.projectRoot || state.root);
+        $('summary').innerHTML =
+          `<details>
+            <summary>${state.dirs.length} folders · ${state.files.length} files · <code title="${escapeHtml(state.projectRoot || state.root)}">${escapeHtml(projectName)}</code></summary>
+            <div class="detail">
+              <div><span class="label">open</span><code title="${escapeHtml(state.root)}">${escapeHtml(state.root)}</code></div>
+              <div><span class="label">project</span><code title="${escapeHtml(state.projectRoot || state.root)}">${escapeHtml(state.projectRoot || state.root)}</code></div>
+              <div><span class="label">output</span><code title="${escapeHtml(state.outputDir || state.root)}">${escapeHtml(state.outputDir || state.root)}</code></div>
+              ${state.storyboard ? `<div><span class="label">conti</span><code title="${escapeHtml(state.storyboard)}">${escapeHtml(state.storyboard)}</code></div>` : ''}
+            </div>
+          </details>` +
+          (d.truncated ? '<div style="color:#fbbf24;margin-top:6px">목록 일부만 표시됨</div>' : '');
+        renderList();
+        clearPreview();
+        setLoading(false);
+      } catch (e) {
+        loadingError(e);
+        throw e;
+      }
+    }
+
+    async function setProject(path) {
+      const target = path || state.root || $('folder-path').value;
+      const r = await fetch('/set_project', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: target }),
+      });
+      const d = await r.json();
+      if (!r.ok || !d.ok) throw new Error(d.error || `HTTP ${r.status}`);
+      await loadFiles(d.path || d.project_root || target);
+      toast('프로젝트 폴더 설정됨');
+    }
+
+    function renderList() {
+      $('file-list').innerHTML = state.entries.map((f, i) => {
+        const icon = f.isParent ? '↩' : f.kind === 'folder' ? '📁' : f.kind === 'image' ? '🖼' : f.kind === 'video' ? '🎬' : f.kind === 'audio' ? '🎵' : '📄';
+        const meta = f.isParent ? 'parent folder' : f.kind === 'folder' ? 'folder' : `${escapeHtml(f.kind)} · ${fmtSize(f.size)}`;
+        return `<li data-i="${i}" class="${i === state.idx ? 'active' : ''}">
+          <span class="name">${icon} ${escapeHtml(f.rel)}</span>
+          <span class="meta">${meta}</span>
+        </li>`;
+      }).join('');
+      $('file-list').querySelectorAll('li').forEach(li => {
+        li.onclick = () => selectFile(parseInt(li.dataset.i), true);
+      });
+    }
+
+    function clearPreview() {
+      $('preview-name').textContent = '파일 선택';
+      $('preview-path').textContent = '';
+      $('preview').innerHTML = '<div class="empty">콘티, 이미지, 영상, JSON 파일을 선택하세요.</div>';
+    }
+
+    async function selectFile(i, openFolder = false) {
+      const f = state.entries[i];
+      if (!f) return;
+      state.idx = i;
+      renderList();
+      if (f.kind === 'folder' && openFolder) {
+        await loadFiles(f.path);
+        return;
+      }
+      $('preview-name').textContent = f.name;
+      $('preview-path').textContent = f.path;
+      if (f.kind === 'folder') {
+        $('preview').innerHTML = '<div class="empty">Enter 또는 클릭으로 폴더를 엽니다.</div>';
+        return;
+      }
+      const src = '/file_preview?path=' + encodeURIComponent(f.path);
+      if (f.kind === 'image') {
+        $('preview').innerHTML = `<img src="${src}" alt="${escapeHtml(f.name)}">`;
+      } else if (f.kind === 'video') {
+        $('preview').innerHTML = `<video src="${src}" controls playsinline></video>`;
+      } else if (f.kind === 'audio') {
+        $('preview').innerHTML = `<audio src="${src}" controls></audio>`;
+      } else {
+        const r = await fetch(src);
+        const text = await r.text();
+        $('preview').innerHTML = `<pre>${escapeHtml(text)}</pre>`;
+      }
+    }
+
+    $('open-btn').onclick = () => loadFiles($('folder-path').value).catch(e => toast(e.message));
+    $('choose-btn').onclick = async () => {
+      try {
+        const r = await fetch('/choose_folder', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ path: state.root || $('folder-path').value }),
+        });
+        const d = await r.json();
+        if (!r.ok || (!d.ok && !d.canceled)) throw new Error(d.error || `HTTP ${r.status}`);
+        if (d.ok && d.path) {
+          await loadFiles(d.path);
+          toast('프로젝트 폴더 설정됨');
+        }
+      } catch (e) {
+        toast(e.message);
+      }
+    };
+    $('parent-btn').onclick = () => loadFiles(state.parent).catch(e => toast(e.message));
+    $('project-btn').onclick = () => loadFiles(state.projectRoot).catch(e => toast(e.message));
+    $('set-project-btn').onclick = () => setProject().catch(e => toast(e.message));
+    $('folder-path').addEventListener('keydown', e => {
+      if (e.key === 'Enter') $('open-btn').click();
+    });
+
+    const TAB_ORDER = ['/files', '/storyboard', '/picker', '/motion', '/sync', '/bgm'];
+    function moveTab(delta) {
+      const idx = Math.max(0, TAB_ORDER.indexOf(window.location.pathname));
+      const next = (idx + delta + TAB_ORDER.length) % TAB_ORDER.length;
+      window.location.href = TAB_ORDER[next];
+    }
+    document.addEventListener('keydown', (e) => {
+      const code = e.code;
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      if (code === 'KeyZ') { e.preventDefault(); moveTab(-1); }
+      else if (code === 'KeyX') { e.preventDefault(); moveTab(1); }
+      else if (code === 'ArrowUp') { e.preventDefault(); selectFile(Math.max(0, state.idx - 1), false); }
+      else if (code === 'ArrowDown') { e.preventDefault(); selectFile(Math.min(state.entries.length - 1, state.idx + 1), false); }
+      else if (code === 'Enter' && state.idx >= 0) { e.preventDefault(); selectFile(state.idx, true); }
+    });
+
+    loadFiles('').catch(e => toast(e.message));
+  </script>
+</body>
+</html>
